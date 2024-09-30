@@ -14,3 +14,6 @@ I now now what 'recursive descent' is.
 This project still fascinates me, 6 years on.
 I'm going to try again.
 
+# Specification
+A specification for the design and function of the CPU is given in `spec.md`.
+
