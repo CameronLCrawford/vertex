@@ -9,7 +9,8 @@ This specification details the design of these components:
 - Program execution
 
 # Instructions
-The control ROM is made up of 2^15 32-bit words.
+The control ROM is made up of 2^16 32-bit words.
+This ROM defines, at each address, the state of the control bus.
 Each bit of the control bus controls a single pin of a component of the CPU eg. `AIN` would control whether or not the `A` register reads in and stores data from the bus on the next tick.
 Note that some sets of instructions can be multiplexed eg. all 'register in' instructions because only a single register can be active during each tick.
 The structure of an instruction word is as follows:
