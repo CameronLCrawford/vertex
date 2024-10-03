@@ -1,4 +1,10 @@
+#include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#define INSTRUCTION_ROM_BYTES 65536
+#define PROGRAM_ROM_BYTES 65536
 
 enum Controls
 {
@@ -51,11 +57,11 @@ enum Registers
     REG_INSTRUCTION
 };
 
-enum FlagNames
+enum Flags
 {
-	FLAG_SIGN,
-	FLAG_CARRY,
-	FLAG_ZERO
+    FLAG_SIGN,
+    FLAG_CARRY,
+    FLAG_ZERO
 };
 
 void tick()
@@ -70,31 +76,69 @@ void tock()
 
 int main()
 {
-	// Buses
-	uint8_t dataBus;
-	uint32_t controlBus;
+    // Buses
+    uint8_t dataBus;
+    uint32_t controlBus;
 
-	// Registers and flags
-	// NOTE: Only three flag bits are used
-	uint8_t registers[15];
-	uint8_t flags;
+    // Registers and flags
+    // NOTE: Only three flag bits are used
+    uint8_t registers[15];
+    uint8_t flags;
 
-	// Microinstruction counter
-	// NOTE: Only four counter bits are used
-	uint8_t microinstructionCounter;
+    // Microinstruction counter
+    // NOTE: Only four counter bits are used
+    uint8_t microinstructionCounter;
 
-	// All addressable memory
-	uint8_t ram[65536];
-	
-	// Control ROM
-	uint32_t controlROM[65536];
+    // All addressable memory
+    uint8_t *ram = (uint8_t *)malloc(sizeof(uint8_t) * PROGRAM_ROM_BYTES);
 
-	// Initialisation:
-	// 1. Reset CPU state
-	// 2. Load instruction ROM
-	// 3. Load program file into memory
+    // Control ROM
+    uint32_t *controlROM = (uint32_t *)malloc(sizeof(uint32_t) * INSTRUCTION_ROM_BYTES);
 
-	return 0;
+    // Initialisation:
+
+    // 1. Reset CPU state
+    registers[REG_H] = 128;
+    registers[REG_STACK_H] = 8;
+
+    // 2. Load instruction ROM
+    
+    // Open file
+    FILE *instruction_rom_file = fopen("instruction_rom.bin", "rb");
+    if (!instruction_rom_file)
+    {
+        perror("Failed to open instruction_rom.bin");
+        return 1;
+    }
+
+    // Read ROM into buffer
+    size_t instructionBytesRead = fread(controlROM, sizeof(uint32_t), INSTRUCTION_ROM_BYTES, instruction_rom_file);
+    if (instructionBytesRead != INSTRUCTION_ROM_BYTES)
+    {
+        perror("instruction_rom.bin file read error");
+        fclose(instruction_rom_file);
+        return 1;
+    }
+
+    // 3. Load program file into memory
+
+    // Open file
+    FILE *program_rom_file = fopen("program_rom.bin", "rb");
+    if (!program_rom_file)
+    {
+        perror("Failed to open program_rom.bin");
+        return 1;
+    }
+
+    // Read ROM into buffer
+    size_t programBytesRead = fread(ram, sizeof(uint8_t), PROGRAM_ROM_BYTES, program_rom_file);
+    if (programBytesRead != PROGRAM_ROM_BYTES)
+    {
+        perror("program_rom.bin file read error");
+        fclose(program_rom_file);
+        return 1;
+    }
+
+    return 0;
 }
-
 
