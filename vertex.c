@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define INSTRUCTION_ROM_BYTES 65536
+#define COMMAND_ROM_BYTES 65536
 #define PROGRAM_ROM_BYTES 65536
 #define NUM_REGISTERS 15
 
@@ -290,12 +290,22 @@ void tock(CPUState *cpu)
     }
 }
 
-int main()
+// Arguments are filenames for command ROM and program ROM
+int main(int argc, char **argv)
 {
-    CPUState cpu;
+    // Handle arguments
+    if (argc != 3)
+    {
+        perror("Expected 2 arguments");
+        return 1;
+    }
+    char *command_filename = argv[1];
+    char *program_filename = argv[2];
 
+    // Instantiate CPU
+    CPUState cpu;
     cpu.ram = (uint8_t *)malloc(sizeof(uint8_t) * PROGRAM_ROM_BYTES);
-    cpu.controlROM = (uint32_t *)malloc(sizeof(uint32_t) * INSTRUCTION_ROM_BYTES);
+    cpu.controlROM = (uint32_t *)malloc(sizeof(uint32_t) * COMMAND_ROM_BYTES);
 
     // Initialisation:
 
@@ -303,46 +313,46 @@ int main()
     cpu.registers[REG_H] = 128;
     cpu.registers[REG_STACK_H] = 8;
 
-    // 2. Load instruction ROM
+    // 2. Load control ROM
 
     // Open file
-    FILE *instruction_rom_file = fopen("instruction_rom.bin", "rb");
-    if (!instruction_rom_file)
+    FILE *command_file = fopen(command_filename, "rb");
+    if (!command_file)
     {
-        perror("Failed to open instruction_rom.bin");
-        return 1;
+        perror("Failed to open command ROM file");
+        goto ROM_LOAD_ERROR
     }
 
     // Read ROM into buffer
-    size_t instructionBytesRead = fread(cpu.controlROM, sizeof(uint32_t), INSTRUCTION_ROM_BYTES, instruction_rom_file);
-    if (instructionBytesRead != INSTRUCTION_ROM_BYTES)
+    size_t commandBytesRead = fread(cpu.controlROM, sizeof(uint32_t), COMMAND_ROM_BYTES, command_file);
+    if (commandBytesRead != COMMAND_ROM_BYTES)
     {
-        perror("instruction_rom.bin file read error");
-        fclose(instruction_rom_file);
-        return 1;
+        perror("Command ROM file read error");
+        fclose(command_file);
+        goto ROM_LOAD_ERROR
     }
 
-    // 3. Load program file into memory
+    // 3. Load program ROM into memory
 
     // Open file
-    FILE *program_rom_file = fopen("program_rom.bin", "rb");
-    if (!program_rom_file)
+    FILE *program_file = fopen(program_filename, "rb");
+    if (!program_file)
     {
-        perror("Failed to open program_rom.bin");
-        return 1;
+        perror("Failed to open program ROM file");
+        goto ROM_LOAD_ERROR
     }
 
     // Read ROM into buffer
-    size_t programBytesRead = fread(cpu.ram, sizeof(uint8_t), PROGRAM_ROM_BYTES, program_rom_file);
+    size_t programBytesRead = fread(cpu.ram, sizeof(uint8_t), PROGRAM_ROM_BYTES, program_file);
     if (programBytesRead != PROGRAM_ROM_BYTES)
     {
-        perror("program_rom.bin file read error");
-        fclose(program_rom_file);
-        return 1;
+        perror("Program ROM file read error");
+        fclose(program_file);
+        goto ROM_LOAD_ERROR
     }
 
     // Execute until halt
-    while (!(cpu.controlBus >> CTRL_HALT))
+    while (!((cpu.controlBus >> CTRL_HALT) & 0b1))
     {
         tick(&cpu);
         tock(&cpu);
@@ -352,5 +362,10 @@ int main()
     free(cpu.controlROM);
 
     return 0;
+
+ROM_LOAD_ERROR:
+    free(cpu.ram);
+    free(cpu.controlROM);
+    return 1;
 }
 
