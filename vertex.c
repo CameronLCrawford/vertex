@@ -196,7 +196,7 @@ void tick(CPUState *cpu)
             bus = -acc;
             break;
         default:
-            perror("ALU switch hit default");
+            fprintf(stderr, "ALU switch hit default\n");
             break;
     }
     cpu->dataBus = bus;
@@ -296,7 +296,7 @@ int main(int argc, char **argv)
     // Handle arguments
     if (argc != 3)
     {
-        perror("Expected 2 arguments");
+        fprintf(stderr, "Expected 2 arguments\n");
         return 1;
     }
     char *command_filename = argv[1];
@@ -319,17 +319,17 @@ int main(int argc, char **argv)
     FILE *command_file = fopen(command_filename, "rb");
     if (!command_file)
     {
-        perror("Failed to open command ROM file");
-        goto ROM_LOAD_ERROR
+        fprintf(stderr, "Failed to open command ROM file\n");
+        goto ROM_LOAD_ERROR;
     }
 
     // Read ROM into buffer
     size_t commandBytesRead = fread(cpu.controlROM, sizeof(uint32_t), COMMAND_ROM_BYTES, command_file);
     if (commandBytesRead != COMMAND_ROM_BYTES)
     {
-        perror("Command ROM file read error");
+        fprintf(stderr, "Command ROM file read error\n");
         fclose(command_file);
-        goto ROM_LOAD_ERROR
+        goto ROM_LOAD_ERROR;
     }
 
     // 3. Load program ROM into memory
@@ -338,17 +338,17 @@ int main(int argc, char **argv)
     FILE *program_file = fopen(program_filename, "rb");
     if (!program_file)
     {
-        perror("Failed to open program ROM file");
-        goto ROM_LOAD_ERROR
+        fprintf(stderr, "Failed to open program ROM file\n");
+        goto ROM_LOAD_ERROR;
     }
 
     // Read ROM into buffer
     size_t programBytesRead = fread(cpu.ram, sizeof(uint8_t), PROGRAM_ROM_BYTES, program_file);
     if (programBytesRead != PROGRAM_ROM_BYTES)
     {
-        perror("Program ROM file read error");
+        fprintf(stderr, "Program ROM file read error\n");
         fclose(program_file);
-        goto ROM_LOAD_ERROR
+        goto ROM_LOAD_ERROR;
     }
 
     // Execute until halt
