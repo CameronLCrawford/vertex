@@ -65,6 +65,27 @@ typedef enum
     FLAG_CARRY
 } Flag;
 
+typedef enum
+{
+    // No operation
+    NOP,
+
+    // Add/subtract
+    ADD, SUB,
+
+    // Binary logical
+    AND, OR, XOR, NOT,
+
+    // Inc/decrement
+    INC, DEC,
+
+    // Carry conditional
+    ADDC, SUBC, INCC, DECC,
+
+    // Unary negate
+    UNEG
+} AluOp;
+
 typedef struct
 {
     uint8_t     dataBus;
@@ -135,64 +156,53 @@ void tick(CPUState *cpu)
     uint8_t carry = (cpu->flags >> FLAG_CARRY) & 0b1;
     switch(aluCode)
     {
-        case 0: // no action taken
+        case NOP:
             break;
-        case 1: // add
+        case ADD:
             bus = acc + temp;
             carry = acc + temp > 255;
             break;
-        case 2: // subtract
+        case SUB:
             bus = acc - temp;
             carry = acc - temp < 0;
             break;
-        // And
-        case 3:
+        case AND:
             bus = acc & temp;
             break;
-        // Or
-        case 4:
+        case OR:
             bus = acc | temp;
             break;
-        // Xor
-        case 5:
+        case XOR:
             bus = acc ^ temp;
             break;
-        // Not
-        case 6:
+        case NOT:
             bus = !acc;
             break;
-        // Increment
-        case 7:
+        case INC:
             bus = acc + 1;
             carry = acc == 255;
             break;
-        // Decrement
-        case 8:
+        case DEC:
             bus = acc - 1;
             carry = acc == 0;
             break;
-        // Add (carry conditional)
-        case 9:
+        case ADDC:
             bus = acc + temp + carry;
             carry = acc + temp + carry > 255;
             break;
-        // Subtract (carry conditional)
-        case 10:
+        case SUBC:
             bus = acc - temp - carry;
             carry = acc - temp - carry < 0;
             break;
-        // Increment (carry conditional)
-        case 11:
+        case INCC:
             bus = acc + carry;
             carry = acc + carry > 255;
             break;
-        // Decrement (carry conditional)
-        case 12:
+        case DECC:
             bus = acc - carry;
             carry = acc - carry < 0;
             break;
-        // Unary negate
-        case 13:
+        case UNEG:
             bus = -acc;
             break;
         default:
