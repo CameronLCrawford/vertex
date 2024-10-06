@@ -205,7 +205,89 @@ void tick(CPUState *cpu)
 
 void tock(CPUState *cpu)
 {
+    // Update relevant registers
+    uint8_t registerInCode = (cpu->controlBus >> CTRL_IN3) & 0b1111;
+    if (registerInCode < NUM_REGISTERS)
+    {
+        cpu->registers[registerInCode] = cpu->dataBus;
+    }
 
+    // Set flags if accumulator updated
+    if (registerInCode == REG_A)
+    {
+        uint8_t sign = cpu->registers[REG_A] > 127;
+        uint8_t zero = cpu->registers[REG_A] == 0;
+        cpu->flags |= (sign << FLAG_SIGN);
+        cpu->flags |= (zero << FLAG_ZERO);
+    }
+
+    // Update virtual 16-bit register inc/dec and handle 8-bit overflow
+    if ((cpu->controlBus >> CTRL_COUNTER_INC) & 0b1)
+    {
+        if (++cpu->registers[REG_COUNTER_L] == 0)
+        {
+            cpu->registers[REG_COUNTER_H]++;
+        }
+    }
+    if ((cpu->controlBus >> CTRL_ADDRESS_INC) & 0b1)
+    {
+        if (++cpu->registers[REG_ADDRESS_L] == 0)
+        {
+            cpu->registers[REG_ADDRESS_H]++;
+        }
+    }
+    if ((cpu->controlBus >> CTRL_STACK_INC) & 0b1)
+    {
+        if (++cpu->registers[REG_STACK_L] == 0)
+        {
+            cpu->registers[REG_STACK_H]++;
+        }
+    }
+    if ((cpu->controlBus >> CTRL_STACK_DEC) & 0b1)
+    {
+        if (--cpu->registers[REG_STACK_L] == 255)
+        {
+            cpu->registers[REG_STACK_H]--;
+        }
+    }
+
+    // Handle direct register move
+    if ((cpu->controlBus >> CTRL_MOVE_ADDRESS_COUNTER) & 0b1)
+    {
+        cpu->registers[REG_ADDRESS_H] = cpu->registers[REG_COUNTER_H];
+        cpu->registers[REG_ADDRESS_L] = cpu->registers[REG_COUNTER_L];
+    }
+    if ((cpu->controlBus >> CTRL_MOVE_ADDRESS_STACK) & 0b1)
+    {
+        cpu->registers[REG_ADDRESS_H] = cpu->registers[REG_STACK_H];
+        cpu->registers[REG_ADDRESS_L] = cpu->registers[REG_STACK_L];
+    }
+    if ((cpu->controlBus >> CTRL_MOVE_ADDRESS_HL) & 0b1)
+    {
+        cpu->registers[REG_ADDRESS_H] = cpu->registers[REG_H];
+        cpu->registers[REG_ADDRESS_L] = cpu->registers[REG_L];
+    }
+
+    // Handle RAM in
+    if ((cpu->controlBus >> CTRL_RAM_IN) & 0b1)
+    {
+        uint16_t ramAddress = 
+            (cpu->registers[REG_ADDRESS_H] << 8) |
+            (cpu->registers[REG_ADDRESS_L]);
+        cpu->ram[ramAddress] = cpu->controlBus;
+    }
+
+    // Reset microtick
+    if ((cpu->controlBus >> CTRL_RESET_MICRO_TICK) & 0b1)
+    {
+        cpu->microinstructionCounter = 0;
+    }
+
+    // Output to STDOUT
+    if ((cpu->controlBus >> CTRL_OUT) & 0b1)
+    {
+        printf("Output: %d", cpu->dataBus);
+    }
 }
 
 int main()
