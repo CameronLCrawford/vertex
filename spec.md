@@ -1,5 +1,5 @@
 # Overview
-`vertex` is a virtual machine that simulates an 8-bit CPU with 15 registers and the ability to address 64k of memory by utilising pairs of 8-bit registers.
+`vertex` is a virtual machine that simulates an 8-bit CPU with the ability to address 64k of memory.
 This specification details the design of these components: 
 - Instructions
 - Registers 
@@ -9,10 +9,10 @@ This specification details the design of these components:
 - Program execution
 
 # Instructions
-The control ROM is made up of 2^16 32-bit words.
+The control ROM is made up of 2^16 N-bit words, where N is the number of control lines.
 This ROM defines, at each address, the state of the control bus.
 Each bit of the control bus controls a single pin of a component of the CPU eg. `AIN` would control whether or not the `A` register reads in and stores data from the bus on the next tick.
-Note that some sets of instructions can be multiplexed eg. all 'register in' instructions because only a single register can be active during each tick.
+Note that some sets of instructions can be multiplexed, eg. all 'register in' instructions, because only a single register can read in during any given tick; this copresses 15 bits to 4.
 The structure of an instruction word is as follows:
 
 | Bit (0 LSB) | Abbreviation | Description |
@@ -27,13 +27,13 @@ The structure of an instruction word is as follows:
 | 16 | moveAddressCounter | Stores program counter in address pointer |
 | 17 | moveAddressStack | Stores stack pointer in address pointer |
 | 18 | moveAddressHL | Stores HL registers in address pointer |
-| 19 | zeroFlagOut | Value of zero flag onto databus |
-| 20 | signFlagOut | Value of sign flag onto databus |
-| 21 | ramIn | Memory at address stored in address pointer onto databus |
-| 22 | ramOut | Data on bus stored at memory address in address pointer |
-| 23 | resetMicroTick | Internal microtick counter is reset to 0 |
-| 24 | out | Data on bus is outputted to terminal |
-| 25 | halt | Program halts and execution stops |
+| 19-20 | flagOut1, flagOut0 | 2 bits represent 4 flag output states |
+| 21 | flagsIn | Reads bus into flags register (status) |
+| 22 | ramIn | Memory at address stored in address pointer onto databus |
+| 23 | ramOut | Data on bus stored at memory address in address pointer |
+| 24 | resetMicroTick | Internal microtick counter is reset to 0 |
+| 25 | out | Data on bus is outputted to terminal |
+| 26 | halt | Program halts and execution stops |
 
 The input address to the control bus is a combination of the flag status, the instruction opcode in the instruction register, and the microinstruction count.
 This is constructed in the following way:
@@ -42,8 +42,9 @@ This is constructed in the following way:
 | ----------- | ----------- |
 | 0-3 | Microinstruction counter value (0-15) |
 | 4-11 | Instruction register value -- allows 256 instructions |
-| 12-14 | Flag bits (sign, carry, zero) |
-| 15 | Not used |
+| 12 | Zero flag |
+| 13 | Sign flag |
+| 14 | Carry flag |
 
  Each machine code instruction is made up of several (up to 16) smaller microinstructions. 
  An example of a set of microinstructions that could represent an add instruction would be `{BOut | ATempIn, Add | AIn}`. 
@@ -53,7 +54,6 @@ The first microinstruction dictates that the `B` register is putting its content
 
 # Registers
 The 15 registers are all 8 bits wide.
-They are all connected to an 8-bit-wide bus. 
 The registers and their functions are detailed in this table:
 
 | Register | Function |
@@ -95,7 +95,6 @@ The 3 system flags are:
 - `zero`
     - The value in the accumulator is 0
 The carry flag is only set when a valid arithmetic operation occurs as it is the direct result of the operation; the other 2 flags are only set when data is moved into the accumulator and are solely based off the data present in the accumulator.
-The CPU does not support interrupts currently.
 The flags register can be put on the bus and this is used in the creation of a new stack frame to save the system state. 
 It can also be read in from the bus to load the previous system state upon destruction of a stack frame.
 
@@ -103,10 +102,9 @@ It can also be read in from the bus to load the previous system state upon destr
 Output can be achieved by setting the `out` control bit high which will print the value of the bus to the terminal.
 
 # Arithmetic operations
-The CPU has an 8-bit ALU which is controlled through 4 control bits. 
-It supports basic arithmetic and binary logic operations. 
+The CPU has an 8-bit ALU which supports basic arithmetic and binary logic operations. 
 The arithmetic operations come in two flavours: unconditional and carry conditional. 
-The carry conditional operations will have a different output based on the status of the carry flag and this is implemented as it allows for arithmetic operations on larger than 8-bit numbers to be performed.
+The carry conditional operations will have a different output based on the status of the carry flag; this is implemented as it allows for arithmetic operations on larger than 8-bit numbers to be performed.
 The ALU also supports a unary negate operation for negating the value in the accumulator. 
 There are two registers that feed into the ALU: the `A` register and the `A Temp` register. All arithmetic operations do not affect the accumulator itself but instead output the result of the operation to the bus.
 The operations supported by the ALU are as follows:
