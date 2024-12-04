@@ -1,4 +1,5 @@
 roms/
 out/
 debug/
+.venv/
 

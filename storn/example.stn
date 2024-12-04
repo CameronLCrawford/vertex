@@ -1,0 +1,72 @@
+' This is a comment! Hello, World!
+
+routine reference_example (x: <[8]>, y: <[8]>) -> [8] {
+        init z: <[8]>.
+        set $z = $y.
+        set x = z.
+        return $x.
+}
+
+routine init_example () -> [0] {
+        init x: [8].
+        init y: <[8]>.
+        init y: <[8]> ^ 2.
+        init a: [8] ^ 2 ^ 2.
+        init b: <<[8]>>.
+        return.
+}
+
+data vec3 {
+        x: [8].
+        y: [8].
+        z: [8].
+}
+
+routine data_example () -> [0] {
+        init a: [vec3].
+        init b: [vec3].
+        set a/x = 2.
+        set a/y = 3.
+        set a/z = 4.
+        set b/x = 3.
+        set b/y = 6.
+        set b/z = 9.
+        init vecs: [vec3] ^ 2.
+        set vecs @ 1 = a.
+        set vecs @ 2 = b.
+        init result: [8].
+        set result = vecs @ 1 / x +:8 vecs @ 2 / y.
+        return result.
+}
+
+routine control_example () -> [0] {
+        init i: [8].
+        set i = 0.
+        loop {
+                output i.
+                if i = 10 {
+                        break.
+                }
+        }
+        return.
+}
+
+routine factorial (n: [8]) -> [8] {
+        if n = 0 {
+                return 1.
+        }
+        if n = 1 {
+                return 1.
+        }
+        return n * !factorial(n -:8 1).
+}
+
+routine entry () -> [0] {
+        init x: <[8]>.
+        init y: <[8]>.
+        set $x = 1.
+        set $y = 2.
+        init z: [8].
+        set z = !reference_example(x, y).
+}
+
