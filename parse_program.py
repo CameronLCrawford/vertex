@@ -1,8 +1,7 @@
 import sys
-from antlr4 import FileStream, CommonTokenStream, ParseTreeWalker
-from StornLexer import StornLexer
-from StornParser import StornParser
-from StornListener import StornListener
+from antlr4 import FileStream, CommonTokenStream
+from storn.StornLexer import StornLexer
+from storn.StornParser import StornParser
 from antlr4.tree.Trees import Trees
 
 def main(argv):
@@ -13,10 +12,6 @@ def main(argv):
     tree = parser.program()
 
     print(Trees.toStringTree(tree, None, parser))
-
-    storn = StornListener()
-    walker = ParseTreeWalker()
-    walker.walk(storn, tree)
 
 if __name__ == "__main__":
     main(sys.argv)

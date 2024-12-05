@@ -22,7 +22,7 @@ data vec3 {
         z: [8].
 }
 
-routine data_example () -> [0] {
+routine data_example () -> [8] {
         init a: [vec3].
         init b: [vec3].
         set a/x = 2.
@@ -32,10 +32,10 @@ routine data_example () -> [0] {
         set b/y = 6.
         set b/z = 9.
         init vecs: [vec3] ^ 2.
-        set vecs @ 1 = a.
-        set vecs @ 2 = b.
+        set vecs @ 0 = a.
+        set vecs @ 1 = b.
         init result: [8].
-        set result = vecs @ 1 / x +:8 vecs @ 2 / y.
+        set result = vecs @ 0 / x +:8 vecs @ 1 / y.
         return result.
 }
 
@@ -44,6 +44,7 @@ routine control_example () -> [0] {
         set i = 0.
         loop {
                 output i.
+                set i = i +:8 1;
                 if i = 10 {
                         break.
                 }
