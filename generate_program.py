@@ -5,11 +5,10 @@ def generate_program(rom_filename):
     rom_bytes = [0] * 65536
     # Program that calculates and outputs power of 2
     # setup: LDA 1
-    # main loop: OUT, ADDA
+    # main loop: OUT, SHLA
     # jump: JMPI main loop
-    # [LDA, 1, OUT, ADDA, JMPI, 128, 2]
-    # [1  , 1, 3  , 0   , 2,  , 128, 2]
-    program = [1, 1, 3, 0, 2, 128, 2]
+    # [LDA, 1, OUT, SHLA, JMPI, 128, 2]
+    program = [2, 1, 4, 1, 3, 128, 2]
     rom_address = 32768
     for instruction in program:
         rom_bytes[rom_address] = instruction

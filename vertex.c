@@ -84,6 +84,9 @@ typedef enum
     // Inc/decrement
     INC, DEC,
 
+    // Shift
+    SHR, SHL,
+
     // Carry conditional
     ADDC, SUBC, INCC, DECC,
 
@@ -217,6 +220,13 @@ void tick(CPUState *cpu)
         case DEC:
             bus = acc - 1;
             carry = acc == 0;
+            break;
+        case SHR:
+            bus = acc >> 1;
+            break;
+        case SHL:
+            bus = acc << 1;
+            carry = acc & 0b10000000;
             break;
         case ADDC:
             bus = acc + temp + carry;

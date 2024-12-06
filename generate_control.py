@@ -56,11 +56,13 @@ def generate_control(rom_filename):
     NOT     = A2 | A1
     INC     = A2 | A1 | A0
     DEC     = A3
-    ADDC    = A3 | A0
-    SUBC    = A3 | A1
-    INCC    = A3 | A1 | A0
-    DECC    = A3 | A2
-    UNEG    = A3 | A2 | A0
+    SHR     = A3 | A0
+    SHL     = A3 | A1
+    ADDC    = A3 | A1 | A0
+    SUBC    = A3 | A2
+    INCC    = A3 | A2 | A0
+    DECC    = A3 | A2 | A1
+    UNEG    = A3 | A2 | A1 | A0
 
     # Instructions
     # Each instruction is a list of control bit states.
@@ -78,6 +80,7 @@ def generate_control(rom_filename):
     # The `instructions` object is a list of all instructions
     instructions = [
         [AO | ATI, ADD | AI], # ADDA -- add value in A to A
+        [A0 | ATI, SHL | AI], # SHLA -- shift A left
         [CNI | ADI | RO | AI], # LDA -- load A with 8-bit immediate
         [CNI | ADI | RO | ATI, CNI | ADI | RO | CLI, ATO | CHI], # JMPI -- jump to 16-bit immediate
         [AO | OUT], # OUT -- output value in accumulator
@@ -89,7 +92,7 @@ def generate_control(rom_filename):
     for i, instruction in enumerate(instructions):
         prefix = [MAC, RO | II]
         suffix = []
-        if i == 2: # Don't increment counter on jump
+        if i == 3: # Don't increment counter on jump
             suffix += [RST]
         else:
             suffix += [RST | CNI]
