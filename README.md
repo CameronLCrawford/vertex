@@ -6,7 +6,7 @@
 `clang vertex.c -o out/vertex`
 
 ## Generate control ROM
-`python3 generate_rom.py roms/control`
+`python3 generate_control.py roms/control`
 
 ## Generate program ROM
 `python3 generate_program.py roms/program`

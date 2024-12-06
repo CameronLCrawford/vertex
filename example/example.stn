@@ -44,7 +44,7 @@ routine control_example () -> [0] {
         set i = 0.
         loop {
                 output i.
-                set i = i +:8 1;
+                set i = i +:8 1.
                 if i = 10 {
                         break.
                 }
