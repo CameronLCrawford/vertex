@@ -74,6 +74,8 @@ UNEG    = A3 | A2 | A1 | A0
 # By taking the binary disjunction of control bits in each microtick,
 # complex control operations can be composed.
 # The `instructions` object is a list of all instructions
+jump_immediate = [MAC, RO | II, CNI | ADI | RO | ATI, CNI | ADI | RO | CLI, ATO | CHI, RST]
+invalid_conditional_jump = [MAC, RO | II, CNI, CNI, RST | CNI]
 Instruction = tuple[
     str,            # Name
     str,            # Description
@@ -110,12 +112,18 @@ instructions: list[Instruction] = [
 
     ### JUMP ###
     # CONDITIONAL
+    (
+        "JZI",
+        "Jump if zero to 16-bit immediate",
+        jump_immediate,
+        [0, 0, 1],
+    ),
 
     # UNCONDITIONAL
     (
         "JI",
         "Jump to 16-bit immediate",
-        [MAC, RO | II, CNI | ADI | RO | ATI, CNI | ADI | RO | CLI, ATO | CHI, RST],
+        jump_immediate,
         [0, 0, 0],
     ),
 

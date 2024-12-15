@@ -4,11 +4,14 @@ import logging
 def generate_program(rom_filename):
     rom_bytes = [0] * 65536
     # Program that calculates and outputs power of 2
+    # Halts at zero
     # setup: LDA 1
     # main loop: OUT, SHLA
-    # jump: JMPI main loop
-    # [LDA, 1, OUT, SHLA, JMPI, 128, 2]
-    program = [2, 1, 4, 1, 3, 128, 2]
+    # maybe end: JZI end
+    # jump: JI main loop
+    # end: HLT
+    # [LDA, 1, OUT, SHLA, JZI, 128, 10, JMPI, 128, 2, HLT]
+    program = [2, 1, 5, 1, 3, 128, 10, 4, 128, 2, 6]
     rom_address = 32768
     for instruction in program:
         rom_bytes[rom_address] = instruction

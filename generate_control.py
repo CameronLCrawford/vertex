@@ -1,6 +1,6 @@
 import sys
 import logging
-from instructions import instructions
+from instructions import instructions, invalid_conditional_jump
 
 def generate_control(rom_filename):
     # The control ROM is addressed using the following composition of bits:
@@ -24,9 +24,10 @@ def generate_control(rom_filename):
                     valid_flag = False
                 if scopes[flag] == -1 and ((flag_state >> flag) & 1):
                     valid_flag = False
-            if not valid_flag:
-                continue
-            microinstructions = instruction[2]
+            if valid_flag:
+                microinstructions = instruction[2]
+            else:
+                microinstructions = invalid_conditional_jump
             for j, microinstruction in enumerate(microinstructions):
                 address = (flag_state << 12) | (i << 4) | j
                 rom[address] = microinstruction
