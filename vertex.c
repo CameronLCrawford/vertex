@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
 
 #define COMMAND_ROM_BYTES 65536
 #define PROGRAM_ROM_BYTES 65536
@@ -104,6 +106,71 @@ typedef struct
     uint8_t     *ram;                       // dynamically-allocated
     uint32_t    *controlROM;                // dynamically-allocated
 } CPUState;
+
+typedef enum
+{
+    LOG_LEVEL_DEBUG,
+    LOG_LEVEL_INFO,
+    LOG_LEVEL_ERROR,
+} LogLevel;
+
+typedef enum
+{
+    EXEC_STAGE_INIT,
+    EXEC_STAGE_RUN,
+    EXEC_STAGE_HALT,
+} ExecutionStage;
+
+static LogLevel logLevel = LOG_LEVEL_INFO;
+static ExecutionStage executionStage = EXEC_STAGE_INIT;
+
+void logMessage(LogLevel level, const char *format, ...)
+{
+    if (level < logLevel)
+    {
+        return;
+    }
+
+    const char *levelName;
+    switch(level)
+    {
+        case LOG_LEVEL_DEBUG:
+            levelName = "DEBUG";
+            break;
+        case LOG_LEVEL_INFO:
+            levelName = "INFO";
+            break;
+        case LOG_LEVEL_ERROR:
+            levelName = "ERROR";
+        default:
+            levelName = "UNKNOWN";
+            break;
+    }
+
+    const char *stageName;
+    switch(executionStage)
+    {
+        case EXEC_STAGE_INIT:
+            stageName = "INIT";
+            break;
+        case EXEC_STAGE_RUN:
+            stageName = "RUN ";
+            break;
+        case EXEC_STAGE_HALT:
+            stageName = "HALT";
+            break;
+        default:
+            stageName = "UNKNOWN";
+    }
+
+    fprintf(stderr, "[%s] ", levelName);
+    fprintf(stderr, "[%s] ", stageName);
+    va_list args;
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+    fprintf(stderr, "\n");
+}
 
 // During the 'tick':
 // 1. The current instruction is decoded
@@ -248,7 +315,7 @@ void tick(CPUState *cpu)
             bus = -acc;
             break;
         default:
-            fprintf(stderr, "ALU switch hit default\n");
+            logMessage(LOG_LEVEL_ERROR, "ALU switch hit default");
             break;
     }
     cpu->dataBus = bus;
@@ -310,7 +377,7 @@ void tock(CPUState *cpu)
     // Output to STDOUT
     if ((cpu->controlBus >> CTRL_OUT) & 0b1)
     {
-        printf("OUTPUT: %d\n", cpu->dataBus);
+        logMessage(LOG_LEVEL_INFO, "OUTPUT: %d", cpu->dataBus);
     }
 }
 
@@ -318,15 +385,33 @@ void tock(CPUState *cpu)
 int main(int argc, char **argv)
 {
     // Handle arguments
-    printf("INIT: Loading arguments\n");
-    if (argc != 3)
+    fprintf(stderr, "Loading arguments\n");
+    if (argc < 3 || argc > 4)
     {
-        fprintf(stderr, "Expected 2 arguments\n");
+        fprintf(stderr, "Expected 2 or 3 arguments");
         return 1;
     }
     char *command_filename = argv[1];
     char *program_filename = argv[2];
-    printf("INIT: Loaded arguments\n");
+    char *logLevelName = "info";
+    if (argc == 4)
+    {
+        char *logLevelName = argv[3];
+    }
+    if (strcmp(logLevelName, "debug") == 0)
+    {
+        logLevel = LOG_LEVEL_DEBUG;
+    }
+    if (strcmp(logLevelName, "info") == 0)
+    {
+        logLevel = LOG_LEVEL_INFO;
+    }
+    if (strcmp(logLevelName, "error") == 0)
+    {
+        logLevel = LOG_LEVEL_ERROR;
+    }
+
+    logMessage(LOG_LEVEL_INFO, "Loaded arguments");
 
     // Instantiate CPU
     CPUState cpu = {0};
@@ -340,13 +425,13 @@ int main(int argc, char **argv)
     cpu.registers[REG_STACK_H] = 8;
 
     // 2. Load control ROM
-    printf("INIT: Loading control ROM\n");
+    logMessage(LOG_LEVEL_INFO, "Loading control ROM");
 
     // Open file
     FILE *command_file = fopen(command_filename, "rb");
     if (!command_file)
     {
-        fprintf(stderr, "Failed to open command ROM file\n");
+        logMessage(LOG_LEVEL_ERROR, "Failed to open command ROM file");
         goto ROM_LOAD_ERROR;
     }
 
@@ -354,21 +439,21 @@ int main(int argc, char **argv)
     size_t commandBytesRead = fread(cpu.controlROM, sizeof(uint32_t), COMMAND_ROM_BYTES, command_file);
     if (commandBytesRead != COMMAND_ROM_BYTES)
     {
-        fprintf(stderr, "Command ROM file read error\n");
+        logMessage(LOG_LEVEL_ERROR, "Command ROM file read error");
         fclose(command_file);
         goto ROM_LOAD_ERROR;
     }
 
-    printf("INIT: Loaded control ROM\n");
+    logMessage(LOG_LEVEL_INFO, "Loaded control ROM");
 
     // 3. Load program ROM into memory
-    printf("INIT: Loading program ROM\n");
+    logMessage(LOG_LEVEL_INFO, "Loading program ROM");
 
     // Open file
     FILE *program_file = fopen(program_filename, "rb");
     if (!program_file)
     {
-        fprintf(stderr, "Failed to open program ROM file\n");
+        logMessage(LOG_LEVEL_ERROR, "Failed to open program ROM file");
         goto ROM_LOAD_ERROR;
     }
 
@@ -376,21 +461,23 @@ int main(int argc, char **argv)
     size_t programBytesRead = fread(cpu.ram, sizeof(uint8_t), PROGRAM_ROM_BYTES, program_file);
     if (programBytesRead != PROGRAM_ROM_BYTES)
     {
-        fprintf(stderr, "Program ROM file read error\n");
+        logMessage(LOG_LEVEL_ERROR, "Program ROM file read error");
         fclose(program_file);
         goto ROM_LOAD_ERROR;
     }
 
-    printf("INIT: Loaded program ROM\n");
+    logMessage(LOG_LEVEL_INFO, "Loaded program ROM");
 
     // Execute until halt
-    printf("INIT: Initialisation complete. Starting execution:\n");
+    logMessage(LOG_LEVEL_INFO, "Initialisation complete. Starting execution:");
+    executionStage = EXEC_STAGE_RUN;
     while (!((cpu.controlBus >> CTRL_HALT) & 0b1))
     {
         tick(&cpu);
         tock(&cpu);
     }
-    printf("HALT: Program halted.\n");
+    executionStage = EXEC_STAGE_HALT;
+    logMessage(LOG_LEVEL_INFO, "Program halted.");
 
     free(cpu.ram);
     free(cpu.controlROM);
