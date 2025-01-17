@@ -2,5 +2,6 @@ roms/
 out/
 debug/
 storn/
+vtx/
 .venv/
 

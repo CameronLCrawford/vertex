@@ -1,0 +1,14 @@
+mov a 10
+add 10
+out ' output: 20
+psh a
+pop a
+out ' output: 10
+sub 20
+out ' output: -10
+LOOP:
+add 1
+out ' output: -9, -8, ..., -1
+jmp nz LOOP
+out ' output: 0
+hlt
