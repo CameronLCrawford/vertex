@@ -20,6 +20,8 @@ instruction
         | pop
         | add
         | sub
+        | shiftLeft
+        | shiftRight
         | jump
         | out
         | halt
@@ -55,6 +57,14 @@ add
 sub
         : 'sub' source
         ;
+
+shiftLeft
+        : 'shl'
+        ;
+
+shiftRight
+        : 'shr'
+	;
 
 jump
         : 'jmp' CONDITION? NAME

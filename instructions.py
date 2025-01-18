@@ -96,7 +96,7 @@ instructions: list[Instruction] = [
 
     # SHIFT
     (
-        "SHLA",
+        "SHL",
         "Shift A left",
         [MAC, RO | II, A0 | ATI, SHL | AI, RST | CNI],
         [0, 0, 0],
@@ -104,8 +104,8 @@ instructions: list[Instruction] = [
 
     ### DATA ###
     (
-        "LDA",
-        "Load A with 8-bit immediate",
+        "MOVAI",
+        "Move into A 8-bit immediate",
         [MAC, RO | II, CNI | ADI | RO | AI, RST | CNI],
         [0, 0, 0],
     ),
@@ -147,3 +147,4 @@ instructions: list[Instruction] = [
     ),
 ]
 
+instruction_names = [instruction[0] for instruction in instructions]
