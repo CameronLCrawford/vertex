@@ -16,8 +16,7 @@ def generate_control(rom_filename):
     rom = [0] * 65536
     for flag_state in range(8):
         for i, instruction in enumerate(instructions):
-            # TODO: document handling of scopes
-            scopes = instruction[3]
+            scopes = instruction.scopes
             valid_flag = True
             for flag in range(3):
                 if scopes[flag] == 1 and not ((flag_state >> flag) & 1):
@@ -25,7 +24,7 @@ def generate_control(rom_filename):
                 if scopes[flag] == -1 and ((flag_state >> flag) & 1):
                     valid_flag = False
             if valid_flag:
-                microinstructions = instruction[2]
+                microinstructions = instruction.microinstructions
             else:
                 microinstructions = invalid_conditional_jump
             for j, microinstruction in enumerate(microinstructions):

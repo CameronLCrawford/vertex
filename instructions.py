@@ -76,16 +76,29 @@ UNEG    = A3 | A2 | A1 | A0
 # The `instructions` object is a list of all instructions
 jump_immediate = [MAC, RO | II, CNI | ADI | RO | ATI, CNI | ADI | RO | CLI, ATO | CHI, RST]
 invalid_conditional_jump = [MAC, RO | II, CNI, CNI, RST | CNI]
-Instruction = tuple[
-    str,            # Name
-    str,            # Description
-    list[int],      # Microinstructions
-    list[int],      # Scopes
-]
+
+class Instruction():
+    name: str
+    description: str
+    microinstructions: list[int]
+    # List of three ints, where each is the scope for the respective
+    # flag -- control, sign, zero.
+    # A scope can be -1, 0, or 1:
+    # - If scope = -1, this instruction is present only when the respective flag is low
+    # - If scope = 0, this instruction is present irrespective of the state of the respective flag
+    # - If scope = 1, this instruction is present only when the respective flag is high
+    scopes: list[int]
+
+    def __init__(self, name, description, microinstructions, scopes) -> None:
+        self.name = name
+        self.description = description
+        self.microinstructions = microinstructions
+        self.scopes = scopes
+
 instructions: list[Instruction] = [
     ### ALU ###
     # ADD
-    (
+    Instruction(
         "ADDA",
         "Add A to A",
         [MAC, RO | II, AO | ATI, ADD | AI, RST | CNI],
@@ -95,7 +108,7 @@ instructions: list[Instruction] = [
     # SUB
 
     # SHIFT
-    (
+    Instruction(
         "SHL",
         "Shift A left",
         [MAC, RO | II, A0 | ATI, SHL | AI, RST | CNI],
@@ -103,7 +116,7 @@ instructions: list[Instruction] = [
     ),
 
     ### DATA ###
-    (
+    Instruction(
         "MOVAI",
         "Move into A 8-bit immediate",
         [MAC, RO | II, CNI | ADI | RO | AI, RST | CNI],
@@ -112,7 +125,7 @@ instructions: list[Instruction] = [
 
     ### JUMP ###
     # CONDITIONAL
-    (
+    Instruction(
         "JZI",
         "Jump if zero to 16-bit immediate",
         jump_immediate,
@@ -120,7 +133,7 @@ instructions: list[Instruction] = [
     ),
 
     # UNCONDITIONAL
-    (
+    Instruction(
         "JI",
         "Jump to 16-bit immediate",
         jump_immediate,
@@ -133,13 +146,13 @@ instructions: list[Instruction] = [
     # POP
 
     ### MISC ###
-    (
+    Instruction(
         "OUT",
         "Output value in A",
         [MAC, RO | II, AO | OUT, RST | CNI],
         [0, 0, 0],
     ),
-    (
+    Instruction(
         "HLT",
         "Halts",
         [MAC, RO | II, HLT, RST | CNI],
@@ -147,4 +160,4 @@ instructions: list[Instruction] = [
     ),
 ]
 
-instruction_names = [instruction[0] for instruction in instructions]
+instruction_names = [instruction.name for instruction in instructions]

@@ -23,7 +23,6 @@ class Assembler(VtxVisitor):
                 high_byte = int(address[:8], 2)
                 low_byte = int(address[8:], 2)
                 address_bytes = [high_byte, low_byte]
-                print(instruction, prefix, address_bytes, suffix)
                 self.instructions = prefix + address_bytes + suffix
             elif instruction == "<LOW_BYTE>":
                 continue
