@@ -89,7 +89,7 @@ class Instruction():
     # - If scope = 1, this instruction is present only when the respective flag is high
     scopes: list[int]
 
-    def __init__(self, name, description, microinstructions, scopes) -> None:
+    def __init__(self, name, description, microinstructions, scopes=[0, 0, 0]) -> None:
         self.name = name
         self.description = description
         self.microinstructions = microinstructions
@@ -102,26 +102,202 @@ instructions: list[Instruction] = [
         "ADDA",
         "Add A to A",
         [MAC, RO | II, AO | ATI, ADD | AI, RST | CNI],
-        [0, 0, 0],
+    ),
+    Instruction(
+        "ADDH",
+        "Add H to A",
+        [MAC, RO | II, HO | ATI, ADD | AI, RST | CNI],
+    ),
+    Instruction(
+        "ADDL",
+        "Add L to A",
+        [MAC, RO | II, LO | ATI, ADD | AI, RST | CNI],
+    ),
+    Instruction(
+        "ADDI",
+        "Add immediate to A",
+        [MAC, RO | II, CNI | ADI | RO | ATI, ADD | AI, RST | CNI],
     ),
 
-    # SUB
+    # SUBTRACT
+    Instruction(
+        "SUBH",
+        "Subtract H from A",
+        [MAC, RO | II, HO | ATI, SUB | AI, RST | CNI],
+    ),
+    Instruction(
+        "SUBL",
+        "Subtact L from A",
+        [MAC, RO | II, LO | ATI, SUB | AI, RST | CNI],
+    ),
+    Instruction(
+        "SUBI",
+        "Subtract immediate from A",
+        [MAC, RO | II, CNI | ADI | RO | ATI, SUB | AI, RST | CNI],
+    ),
+
+    # AND
+    Instruction(
+        "ANDH",
+        "And H with A",
+        [MAC, RO | II, HO | ATI, AND | AI, RST | CNI]
+    ),
+    Instruction(
+        "ANDL",
+        "And L with A",
+        [MAC, RO | II, LO | ATI, AND | AI, RST | CNI]
+    ),
+    Instruction(
+        "ANDI",
+        "And immediate with A",
+        [MAC, RO | II, CNI | ADI | RO | ATI, AND | AI, RST | CNI]
+    ),
+
+    # OR
+    Instruction(
+        "ORH",
+        "Or H with A",
+        [MAC, RO | II, HO | ATI, OR | AI, RST | CNI]
+    ),
+    Instruction(
+        "ORL",
+        "Or L with A",
+        [MAC, RO | II, LO | ATI, OR | AI, RST | CNI]
+    ),
+    Instruction(
+        "ORI",
+        "Or immediate with A",
+        [MAC, RO | II, CNI | ADI | RO | ATI, OR | AI, RST | CNI]
+    ),
+
+    # XOR
+    Instruction(
+        "XORH",
+        "Xor H with A",
+        [MAC, RO | II, HO | ATI, XOR | AI, RST | CNI]
+    ),
+    Instruction(
+        "XORL",
+        "Xor L with A",
+        [MAC, RO | II, LO | ATI, XOR | AI, RST | CNI]
+    ),
+    Instruction(
+        "XORI",
+        "Xor immediate with A",
+        [MAC, RO | II, CNI | ADI | RO | ATI, XOR | AI, RST | CNI]
+    ),
+
+    # NOT
+    Instruction(
+        "NOT",
+        "Logical negate A",
+        [MAC, RO | II, NOT | AI, RST | CNI]
+    ),
+
+    # INCREMENT
+    Instruction(
+        "INC",
+        "Increment register A",
+        [MAC, RO | II, INC | AI, RST | CNI],
+    ),
+
+    # DECREMENT
+    Instruction(
+        "DEC",
+        "Decrement register A",
+        [MAC, RO | II, DEC | AI, RST | CNI],
+    ),
 
     # SHIFT
     Instruction(
         "SHL",
         "Shift A left",
-        [MAC, RO | II, A0 | ATI, SHL | AI, RST | CNI],
-        [0, 0, 0],
+        [MAC, RO | II, SHL | AI, RST | CNI],
     ),
+    Instruction(
+        "SHR",
+        "Shift A right",
+        [MAC, RO | II, SHR | AI, RST | CNI],
+    ),
+
+    # ADD (CARRY CONDITIONAL)
+    Instruction(
+        "ADDCA",
+        "Add A to A (carry conditional)",
+        [MAC, RO | II, AO | ATI, ADDC | AI, RST | CNI],
+    ),
+    Instruction(
+        "ADDCH",
+        "Add H to A (carry conditional)",
+        [MAC, RO | II, HO | ATI, ADDC | AI, RST | CNI],
+    ),
+    Instruction(
+        "ADDCL",
+        "Add L to A (carry conditional)",
+        [MAC, RO | II, LO | ATI, ADDC | AI, RST | CNI],
+    ),
+    Instruction(
+        "ADDCI",
+        "Add immediate to A (carry conditional)",
+        [MAC, RO | II, CNI | ADI | RO | ATI, ADDC | AI, RST | CNI],
+    ),
+
+    # SUBTRACT (CARRY CONDITIONAL)
+    Instruction(
+        "SUBCH",
+        "Subtract H from A (carry conditional)",
+        [MAC, RO | II, HO | ATI, SUBC | AI, RST | CNI],
+    ),
+    Instruction(
+        "ADDCL",
+        "Subtract L from A (carry conditional)",
+        [MAC, RO | II, LO | ATI, SUBC | AI, RST | CNI],
+    ),
+    Instruction(
+        "SUBCI",
+        "Subtract immediate from A (carry conditional)",
+        [MAC, RO | II, CNI | ADI | RO | ATI, SUBC | AI, RST | CNI],
+    ),
+
+    # INCREMENT (CARRY CONDITIONAL)
+    Instruction(
+        "INCC",
+        "Increment A (carry conditional)",
+        [MAC, RO | II, INCC | AI, RST | CNI],
+    ),
+
+    # DECREMENT (CARRY CONDITIONAL)
+    Instruction(
+        "DECC",
+        "Decrement A (carry conditional)",
+        [MAC, RO | II, DECC | AI, RST | CNI],
+    ),
+
+    # NEGATE
+    Instruction(
+        "NEGA",
+        "Arithmetic negate register A",
+        [MAC, RO | II, UNEG | AI, RST | CNI],
+    ),
+
 
     ### DATA ###
     Instruction(
         "MOVAI",
-        "Move into A 8-bit immediate",
+        "Move immediate into A",
         [MAC, RO | II, CNI | ADI | RO | AI, RST | CNI],
-        [0, 0, 0],
     ),
+    Instruction(
+        "MOVHI",
+        "Move immediate into H",
+        [MAC, RO | II, CNI | ADI | RO | HI, RST | CNI],
+    ),
+    Instruction(
+        "MOVLI",
+        "Move immediate into L",
+        [MAC, RO | II, CNI | ADI | RO | LI, RST | CNI],
+    ),
+
 
     ### JUMP ###
     # CONDITIONAL
@@ -131,32 +307,95 @@ instructions: list[Instruction] = [
         jump_immediate,
         [0, 0, 1],
     ),
+    Instruction(
+        "JNZI",
+        "Jump if not zero to 16-bit immediate",
+        jump_immediate,
+        [0, 0, -1],
+    ),
+    Instruction(
+        "JCI",
+        "Jump if carry to 16-bit immediate",
+        jump_immediate,
+        [0, 1, 0],
+    ),
+    Instruction(
+        "JNCI",
+        "Jump if not carry to 16-bit immediate",
+        jump_immediate,
+        [0, -1, 0],
+    ),
+    Instruction(
+        "JNSI",
+        "Jump if sign to 16-bit immediate",
+        jump_immediate,
+        [1, 0, 0],
+    ),
+    Instruction(
+        "JNSI",
+        "Jump if not sign to 16-bit immediate",
+        jump_immediate,
+        [-1, 0, 0],
+    ),
 
     # UNCONDITIONAL
     Instruction(
         "JI",
         "Jump to 16-bit immediate",
         jump_immediate,
-        [0, 0, 0],
     ),
 
     ### STACK ###
     # PUSH
+    Instruction(
+        "PSHI",
+        "Push immediate",
+        [MAC, RO | II, CNI | ADI | RO | ATI | STD, MAS | ATO | RI],
+    ),
+    Instruction(
+        "PSHA",
+        "Push A",
+        [MAC, RO | II | STD, MAS | AO | RI],
+    ),
+    Instruction(
+        "PSHH",
+        "Push H",
+        [MAC, RO | II | STD, MAS | HO | RI],
+    ),
+    Instruction(
+        "PSHL",
+        "Push L",
+        [MAC, RO | II | STD, MAS | LO | RI],
+    ),
+
 
     # POP
+    Instruction(
+        "POPA",
+        "Pop A",
+        [MAC, RO | II | MAS, STI | AI | RO],
+    ),
+    Instruction(
+        "POPH",
+        "Pop H",
+        [MAC, RO | II | MAS, STI | HI | RO],
+    ),
+    Instruction(
+        "POPL",
+        "Pop L",
+        [MAC, RO | II | MAS, STI | LI | RO],
+    ),
 
     ### MISC ###
     Instruction(
         "OUT",
         "Output value in A",
         [MAC, RO | II, AO | OUT, RST | CNI],
-        [0, 0, 0],
     ),
     Instruction(
         "HLT",
         "Halts",
         [MAC, RO | II, HLT, RST | CNI],
-        [0, 0, 0],
     ),
 ]
 
