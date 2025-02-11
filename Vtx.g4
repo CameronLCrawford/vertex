@@ -35,7 +35,6 @@ source
 
 destination
         : REGISTER
-        | ADDRESS
         ;
 
 move
@@ -64,7 +63,7 @@ shiftLeft
 
 shiftRight
         : 'shr'
-	;
+        ;
 
 jump
         : 'jmp' CONDITION? NAME
@@ -96,7 +95,6 @@ REGISTER
 
 ADDRESS
         : '@' CONSTANT
-        | '@' NAME
         ;
 
 CONDITION

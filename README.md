@@ -15,6 +15,11 @@ For installation instructions and general wisdom, see [here](https://tomassetti.
 **or**
 `clang vertex.c -o out/vertex`
 
+## Generate ANTLR outputs
+`make storn-parser`
+**and**
+`make vtx-parser`
+
 ## Generate control ROM
 `python generate_control.py roms/control`
 

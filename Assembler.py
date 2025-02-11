@@ -2,10 +2,16 @@ from vtx.VtxVisitor import VtxVisitor
 from vtx.VtxParser import VtxParser
 from instructions import instruction_names
 
+def convert_address_to_bytes(address: int) -> tuple[int, int]:
+    binary_address = bin(address)[2:].zfill(16)
+    high_byte = int(binary_address[:8], 2)
+    low_byte = int(binary_address[8:], 2)
+    return (high_byte, low_byte)
+
 class Assembler(VtxVisitor):
     def __init__(self):
-        self.instructions = []
-        self.symbol_table = {}
+        self.instructions: list[int] = []
+        self.symbol_table: dict[str, int] = {}
         self.current_address = 2**15
 
     def visitProgram(self, ctx: VtxParser.ProgramContext):
@@ -19,18 +25,15 @@ class Assembler(VtxVisitor):
                     suffix = self.instructions[(i + 2):]
                 except IndexError:
                     suffix = []
-                address = bin(int(self.symbol_table[instruction]))[2:].zfill(16)
-                high_byte = int(address[:8], 2)
-                low_byte = int(address[8:], 2)
-                address_bytes = [high_byte, low_byte]
-                self.instructions = prefix + address_bytes + suffix
+                address_bytes = convert_address_to_bytes(self.symbol_table[instruction])
+                self.instructions = prefix + list(address_bytes) + suffix
             elif instruction == "<LOW_BYTE>":
                 continue
             else:
                 try:
                     int(instruction)
                 except ValueError:
-                    print(f"Error on instruction: {instruction}")
+                    raise Exception(f"Error on instruction: {instruction}")
 
     def visitLabel(self, ctx: VtxParser.LabelContext):
         label_name = ctx.NAME().getText()
@@ -55,12 +58,28 @@ class Assembler(VtxVisitor):
             return [instruction_names.index(f"MOV{destination}I"), constant]
         elif source.ADDRESS():
             source = source.ADDRESS().getText()
-            instruction = f"MOV{destination}A"
-            return [instruction_names.index(instruction)]
+            try:
+                address = int(source.ADDRESS().CONSTANT())
+            except ValueError:
+                raise Exception("Cannot cast address to int")
+            high_byte, low_byte = convert_address_to_bytes(address)
+            return [instruction_names.index("MOVA@"), high_byte, low_byte]
 
     def visitPush(self, ctx: VtxParser.PushContext):
-        source = ctx.source().getText().upper()
-        return [instruction_names.index(f"PUSH{source}")]
+        source = ctx.source()
+        if source.REGISTER():
+            register = source.REGISTER().getText().upper()
+            return [instruction_names.index(f"PSH{register}")]
+        if source.CONSTANT():
+            immediate = int(source.CONSTANT().getText())
+            return [instruction_names.index("PSHI"), immediate]
+        elif source.ADDRESS():
+            try:
+                address = int(source.ADDRESS().CONSTANT())
+            except IndexError:
+                raise Exception("Cannot cast address to int")
+            high_byte, low_byte = convert_address_to_bytes(address)
+            return [instruction_names.index("PSH@"), high_byte, low_byte]
 
     def visitPop(self, ctx: VtxParser.PopContext):
         destination = ctx.destination().getText().upper()

@@ -1,0 +1,34 @@
+mov a 0
+jmp nz FAILED_NZ_FALSE
+jmp PASSED_NZ_FALSE
+FAILED_NZ_FALSE:
+mov a 1
+out
+hlt
+
+PASSED_NZ_FALSE:
+mov a 10
+jmp nz PASSED_NZ_TRUE
+mov a 2
+out
+hlt
+
+PASSED_NZ_TRUE:
+jmp z FAILED_Z_FALSE
+jmp PASSED_Z_FALSE
+FAILED_Z_FALSE:
+mov a 3
+out
+hlt
+
+PASSED_Z_FALSE:
+mov a 0
+jmp z PASSED_Z_TRUE
+mov a 4
+out
+hlt
+
+PASSED_Z_TRUE:
+mov a 20
+out
+hlt

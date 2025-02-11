@@ -1,0 +1,8 @@
+psh 10
+psh 20
+psh 30
+pop h
+pop l
+pop a
+out
+hlt

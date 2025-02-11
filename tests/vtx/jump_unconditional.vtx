@@ -1,0 +1,16 @@
+mov a 10
+jmp ONE
+out
+hlt
+ONE:
+jmp TWO
+out
+hlt
+THREE:
+mov a 20
+out
+hlt
+TWO:
+jmp THREE
+out
+hlt

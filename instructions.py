@@ -297,6 +297,21 @@ instructions: list[Instruction] = [
         "Move immediate into L",
         [MAC, RO | II, CNI | ADI | RO | LI, RST | CNI],
     ),
+    Instruction(
+        "MOVA@",
+        "Move value at address in adjacent two bytes into A",
+        [MAC, RO | II, CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | ALI, RO | AI, RST | CNI],
+    ),
+    Instruction(
+        "MOVH@",
+        "Move value at address in adjacent two bytes into H",
+        [MAC, RO | II, CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | ALI, RO | HI, RST | CNI],
+    ),
+    Instruction(
+        "MOVL@",
+        "Move value at address in adjacent two bytes into L",
+        [MAC, RO | II, CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | ALI, RO | LI, RST | CNI],
+    ),
 
 
     ### JUMP ###
@@ -350,40 +365,44 @@ instructions: list[Instruction] = [
     Instruction(
         "PSHI",
         "Push immediate",
-        [MAC, RO | II, CNI | ADI | RO | ATI | STD, MAS | ATO | RI],
+        [MAC, RO | II, CNI | ADI | RO | ATI | STD, MAS | ATO | RI, RST | CNI],
     ),
     Instruction(
         "PSHA",
         "Push A",
-        [MAC, RO | II | STD, MAS | AO | RI],
+        [MAC, RO | II | STD, MAS | AO | RI, RST | CNI],
     ),
     Instruction(
         "PSHH",
         "Push H",
-        [MAC, RO | II | STD, MAS | HO | RI],
+        [MAC, RO | II | STD, MAS | HO | RI, RST | CNI],
     ),
     Instruction(
         "PSHL",
         "Push L",
-        [MAC, RO | II | STD, MAS | LO | RI],
+        [MAC, RO | II | STD, MAS | LO | RI, RST | CNI],
     ),
-
+    Instruction(
+        "PSH@",
+        "Push value at address in adjacent two btes",
+        [MAC, RO | II, CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | ALI, STD | RO | ATI, MAS | ATO | RI, RST | CNI],
+    ),
 
     # POP
     Instruction(
         "POPA",
         "Pop A",
-        [MAC, RO | II | MAS, STI | AI | RO],
+        [MAC, RO | II | MAS, STI | AI | RO, RST | CNI],
     ),
     Instruction(
         "POPH",
         "Pop H",
-        [MAC, RO | II | MAS, STI | HI | RO],
+        [MAC, RO | II | MAS, STI | HI | RO, RST | CNI],
     ),
     Instruction(
         "POPL",
         "Pop L",
-        [MAC, RO | II | MAS, STI | LI | RO],
+        [MAC, RO | II | MAS, STI | LI | RO, RST | CNI],
     ),
 
     ### MISC ###

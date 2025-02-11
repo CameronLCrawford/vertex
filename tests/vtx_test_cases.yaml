@@ -1,0 +1,9 @@
+- program: stack
+  expected_output: "OUTPUT: 10"
+- program: data
+  expected_output: "OUTPUT: 10"
+- program: jump_unconditional
+  expected_output: "OUTPUT: 20"
+- program: jump_conditional
+  expected_output: "OUTPUT: 20"
+
