@@ -1,12 +1,16 @@
 # Requirements
 
 ## antlr4
-For installation instructions and general wisdom, see [here](https://tomassetti.me/antlr-mega-tutorial/).
+For general wisdom, see [here](https://tomassetti.me/antlr-mega-tutorial/).
+For installation, install 4.13.2 from [here](https://www.antlr.org/download.html) and move the `.jar` to `/usr/local/lib/`.
 
 ## Python3 venv
 - `python3 -m venv .venv`
 - `source .venv/bin/activate`
 - `pip install -r requirements.txt`
+
+## roms directory
+`mkdir roms`
 
 # Operations
 

@@ -82,7 +82,7 @@ class Instruction():
     description: str
     microinstructions: list[int]
     # List of three ints, where each is the scope for the respective
-    # flag -- control, sign, zero.
+    # flag -- [zero, sign, carry].
     # A scope can be -1, 0, or 1:
     # - If scope = -1, this instruction is present only when the respective flag is low
     # - If scope = 0, this instruction is present irrespective of the state of the respective flag
@@ -320,37 +320,37 @@ instructions: list[Instruction] = [
         "JZI",
         "Jump if zero to 16-bit immediate",
         jump_immediate,
-        [0, 0, 1],
+        [1, 0, 0],
     ),
     Instruction(
         "JNZI",
         "Jump if not zero to 16-bit immediate",
         jump_immediate,
-        [0, 0, -1],
-    ),
-    Instruction(
-        "JCI",
-        "Jump if carry to 16-bit immediate",
-        jump_immediate,
-        [0, 1, 0],
-    ),
-    Instruction(
-        "JNCI",
-        "Jump if not carry to 16-bit immediate",
-        jump_immediate,
-        [0, -1, 0],
+        [-1, 0, 0],
     ),
     Instruction(
         "JNSI",
         "Jump if sign to 16-bit immediate",
         jump_immediate,
-        [1, 0, 0],
+        [0, 1, 0],
     ),
     Instruction(
         "JNSI",
         "Jump if not sign to 16-bit immediate",
         jump_immediate,
-        [-1, 0, 0],
+        [0, -1, 0],
+    ),
+    Instruction(
+        "JCI",
+        "Jump if carry to 16-bit immediate",
+        jump_immediate,
+        [0, 0, 1],
+    ),
+    Instruction(
+        "JNCI",
+        "Jump if not carry to 16-bit immediate",
+        jump_immediate,
+        [0, 0, -1],
     ),
 
     # UNCONDITIONAL
@@ -365,27 +365,27 @@ instructions: list[Instruction] = [
     Instruction(
         "PSHI",
         "Push immediate",
-        [MAC, RO | II, CNI | ADI | RO | ATI | STD, MAS | ATO | RI, RST | CNI],
+        [MAC, RO | II, CNI | ADI | RO | ATI | STD | MAS, ATO | RI, RST | CNI],
     ),
     Instruction(
         "PSHA",
         "Push A",
-        [MAC, RO | II | STD, MAS | AO | RI, RST | CNI],
+        [MAC, RO | II | STD | MAS, AO | RI, RST | CNI],
     ),
     Instruction(
         "PSHH",
         "Push H",
-        [MAC, RO | II | STD, MAS | HO | RI, RST | CNI],
+        [MAC, RO | II | STD | MAS, HO | RI, RST | CNI],
     ),
     Instruction(
         "PSHL",
         "Push L",
-        [MAC, RO | II | STD, MAS | LO | RI, RST | CNI],
+        [MAC, RO | II | STD | MAS, LO | RI, RST | CNI],
     ),
     Instruction(
         "PSH@",
-        "Push value at address in adjacent two btes",
-        [MAC, RO | II, CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | ALI, STD | RO | ATI, MAS | ATO | RI, RST | CNI],
+        "Push value at address in adjacent two bytes",
+        [MAC, RO | II, CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | ALI, STD | RO | ATI | MAS, ATO | RI, RST | CNI],
     ),
 
     # POP

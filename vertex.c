@@ -319,7 +319,7 @@ void tick(CPUState *cpu)
             break;
     }
     cpu->dataBus = bus;
-    cpu->flags |= (carry << FLAG_CARRY);
+    cpu->flags = (cpu->flags & ~(1 << FLAG_CARRY)) | (carry << FLAG_CARRY);
 }
 
 void tock(CPUState *cpu)
@@ -333,8 +333,9 @@ void tock(CPUState *cpu)
     {
         uint8_t sign = cpu->registers[REG_A] > 127;
         uint8_t zero = cpu->registers[REG_A] == 0;
-        cpu->flags |= (sign << FLAG_SIGN);
-        cpu->flags |= (zero << FLAG_ZERO);
+        cpu->flags = (cpu->flags & ~((1 << FLAG_SIGN) | (1 << FLAG_ZERO)))
+            | (sign << FLAG_SIGN)
+            | (zero << FLAG_ZERO);
     }
 
     // Handle direct register move
