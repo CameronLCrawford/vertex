@@ -361,7 +361,7 @@ void tock(CPUState *cpu)
         uint16_t ramAddress = 
             (cpu->registers[REG_ADDRESS_H] << 8) |
             (cpu->registers[REG_ADDRESS_L]);
-        cpu->ram[ramAddress] = cpu->controlBus;
+        cpu->ram[ramAddress] = cpu->dataBus;
     }
 
     // Handle status in
