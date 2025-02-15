@@ -138,10 +138,11 @@ void logMessage(LogLevel level, const char *format, ...)
             levelName = "DEBUG";
             break;
         case LOG_LEVEL_INFO:
-            levelName = "INFO";
+            levelName = "INFO ";
             break;
         case LOG_LEVEL_ERROR:
             levelName = "ERROR";
+            break;
         default:
             levelName = "UNKNOWN";
             break;
@@ -161,6 +162,7 @@ void logMessage(LogLevel level, const char *format, ...)
             break;
         default:
             stageName = "UNKNOWN";
+            break;
     }
 
     fprintf(stderr, "[%s] ", levelName);
@@ -186,10 +188,13 @@ void tick(CPUState *cpu)
         (cpu->registers[REG_INSTRUCTION] << 4) |
         (cpu->microinstructionCounter++);
     cpu->controlBus = cpu->controlROM[instructionAddress];
+    logMessage(LOG_LEVEL_DEBUG, "Instruction address: 0x%x", instructionAddress);
+    logMessage(LOG_LEVEL_DEBUG, "Control bus: 0x%x", cpu->controlBus);
 
     // Update virtual 16-bit register inc/dec and handle 8-bit overflow
     if ((cpu->controlBus >> CTRL_COUNTER_INC) & 0b1)
     {
+        logMessage(LOG_LEVEL_DEBUG, "Incrementing counter register");
         if (++cpu->registers[REG_COUNTER_L] == 0)
         {
             cpu->registers[REG_COUNTER_H]++;
@@ -197,6 +202,7 @@ void tick(CPUState *cpu)
     }
     if ((cpu->controlBus >> CTRL_ADDRESS_INC) & 0b1)
     {
+        logMessage(LOG_LEVEL_DEBUG, "Incrementing address register");
         if (++cpu->registers[REG_ADDRESS_L] == 0)
         {
             cpu->registers[REG_ADDRESS_H]++;
@@ -204,6 +210,7 @@ void tick(CPUState *cpu)
     }
     if ((cpu->controlBus >> CTRL_STACK_INC) & 0b1)
     {
+        logMessage(LOG_LEVEL_DEBUG, "Incrementing stack register");
         if (++cpu->registers[REG_STACK_L] == 0)
         {
             cpu->registers[REG_STACK_H]++;
@@ -211,6 +218,7 @@ void tick(CPUState *cpu)
     }
     if ((cpu->controlBus >> CTRL_STACK_DEC) & 0b1)
     {
+        logMessage(LOG_LEVEL_DEBUG, "Decrementing stack register");
         if (--cpu->registers[REG_STACK_L] == 255)
         {
             cpu->registers[REG_STACK_H]--;
@@ -220,22 +228,31 @@ void tick(CPUState *cpu)
     // Calculate and set register output state
     // Because controlBus bits are stored [..., out3, out2, out1, out0, ...]
     uint8_t registerOutCode = (cpu->controlBus >> CTRL_OUT3) & 0b1111;
-    cpu->dataBus = cpu->registers[registerOutCode];
+    logMessage(LOG_LEVEL_DEBUG, "Register out code: %d", registerOutCode);
+    if (registerOutCode > 0)
+    {
+        cpu->dataBus = cpu->registers[registerOutCode];
+        logMessage(LOG_LEVEL_DEBUG, "Register out new bus value: %d", cpu->dataBus);
+    }
 
     // Calculate and set flag output state
     uint8_t flagOutCode = (cpu->controlBus >> CTRL_FLAG_OUT1) & 0b11;
+    logMessage(LOG_LEVEL_DEBUG, "Flag out code: %d", flagOutCode);
     switch(flagOutCode)
     {
         case 0: // no flag
             break;
         case 1: // zero flag
             cpu->dataBus = (cpu->flags >> FLAG_ZERO) & 0b1;
+            logMessage(LOG_LEVEL_DEBUG, "Zero flag out new bus value: %d", cpu->dataBus);
             break;
         case 2: // sign flag
             cpu->dataBus = (cpu->flags >> FLAG_SIGN) & 0b1;
+            logMessage(LOG_LEVEL_DEBUG, "Sign flag out new bus value: %d", cpu->dataBus);
             break;
         case 3: // all flags (status)
             cpu->dataBus = cpu->flags;
+            logMessage(LOG_LEVEL_DEBUG, "All flag out new bus value: %d", cpu->dataBus);
             break;
         default:
             break;
@@ -247,7 +264,9 @@ void tick(CPUState *cpu)
         uint16_t ramAddress = 
             (cpu->registers[REG_ADDRESS_H] << 8) |
             (cpu->registers[REG_ADDRESS_L]);
+        logMessage(LOG_LEVEL_DEBUG, "RAM out address: 0x%x", ramAddress);
         cpu->dataBus = cpu->ram[ramAddress];
+        logMessage(LOG_LEVEL_DEBUG, "RAM out new bus value: %d", cpu->dataBus);
     }
 
     // Calculate and set ALU state
@@ -256,17 +275,26 @@ void tick(CPUState *cpu)
     uint8_t temp = cpu->registers[REG_A_TEMP];
     uint8_t bus = cpu->dataBus;
     uint8_t carry = (cpu->flags >> FLAG_CARRY) & 0b1;
+    logMessage(LOG_LEVEL_DEBUG, "ALU code: %d", aluCode);
+    if (aluCode > 0)
+    {
+        logMessage(LOG_LEVEL_DEBUG, "Acc before ALU operation: %d", acc);
+        logMessage(LOG_LEVEL_DEBUG, "Acc temp before ALU operation: %d", temp);
+        logMessage(LOG_LEVEL_DEBUG, "Bus before ALU operation: %d", bus);
+        logMessage(LOG_LEVEL_DEBUG, "Carry before ALU oepration: %d", carry);
+        logMessage(LOG_LEVEL_DEBUG, "Flags before ALU operation: %d", cpu->flags);
+    }
     switch(aluCode)
     {
         case NOP:
             break;
         case ADD:
             bus = acc + temp;
-            carry = acc + temp > 255;
+            carry = (unsigned int)acc + (unsigned int)temp > 255;
             break;
         case SUB:
             bus = acc - temp;
-            carry = acc - temp < 0;
+            carry = acc < temp;
             break;
         case AND:
             bus = acc & temp;
@@ -297,19 +325,19 @@ void tick(CPUState *cpu)
             break;
         case ADDC:
             bus = acc + temp + carry;
-            carry = acc + temp + carry > 255;
+            carry = (unsigned int)acc + (unsigned int)temp + (unsigned int)carry > 255;
             break;
         case SUBC:
             bus = acc - temp - carry;
-            carry = acc - temp - carry < 0;
+            carry = acc < (temp + carry);
             break;
         case INCC:
             bus = acc + carry;
-            carry = acc + carry > 255;
+            carry = (unsigned int)acc + (unsigned int)carry > 255;
             break;
         case DECC:
             bus = acc - carry;
-            carry = acc - carry < 0;
+            carry = acc < carry;
             break;
         case UNEG:
             bus = -acc;
@@ -318,15 +346,27 @@ void tick(CPUState *cpu)
             logMessage(LOG_LEVEL_ERROR, "ALU switch hit default");
             break;
     }
-    cpu->dataBus = bus;
-    cpu->flags = (cpu->flags & ~(1 << FLAG_CARRY)) | (carry << FLAG_CARRY);
+    if (aluCode > 0) {
+        cpu->dataBus = bus;
+        cpu->flags = (cpu->flags & ~(1 << FLAG_CARRY)) | (carry << FLAG_CARRY);
+        logMessage(LOG_LEVEL_DEBUG, "Acc after ALU operation: %d", acc);
+        logMessage(LOG_LEVEL_DEBUG, "Acc temp after ALU operation: %d", temp);
+        logMessage(LOG_LEVEL_DEBUG, "Bus after ALU operation: %d", bus);
+        logMessage(LOG_LEVEL_DEBUG, "Carry after ALU operation: %d", carry);
+        logMessage(LOG_LEVEL_DEBUG, "Flags after ALU operation: %d", cpu->flags);
+    }
 }
 
 void tock(CPUState *cpu)
 {
     // Update relevant registers
     uint8_t registerInCode = (cpu->controlBus >> CTRL_IN3) & 0b1111;
-    cpu->registers[registerInCode] = cpu->dataBus;
+    logMessage(LOG_LEVEL_DEBUG, "Register in code: %d", registerInCode);
+    if (registerInCode > 0)
+    {
+        cpu->registers[registerInCode] = cpu->dataBus;
+        logMessage(LOG_LEVEL_DEBUG, "Register in new register value: %d", cpu->registers[registerInCode]);
+    }
 
     // Set flags if accumulator updated
     if (registerInCode == REG_A)
@@ -336,21 +376,25 @@ void tock(CPUState *cpu)
         cpu->flags = (cpu->flags & ~((1 << FLAG_SIGN) | (1 << FLAG_ZERO)))
             | (sign << FLAG_SIGN)
             | (zero << FLAG_ZERO);
+        logMessage(LOG_LEVEL_DEBUG, "Acc in new flags value: %d", cpu->flags);
     }
 
     // Handle direct register move
     if ((cpu->controlBus >> CTRL_MOVE_ADDRESS_COUNTER) & 0b1)
     {
+        logMessage(LOG_LEVEL_DEBUG, "Move address counter");
         cpu->registers[REG_ADDRESS_H] = cpu->registers[REG_COUNTER_H];
         cpu->registers[REG_ADDRESS_L] = cpu->registers[REG_COUNTER_L];
     }
     if ((cpu->controlBus >> CTRL_MOVE_ADDRESS_STACK) & 0b1)
     {
+        logMessage(LOG_LEVEL_DEBUG, "Move address stack");
         cpu->registers[REG_ADDRESS_H] = cpu->registers[REG_STACK_H];
         cpu->registers[REG_ADDRESS_L] = cpu->registers[REG_STACK_L];
     }
     if ((cpu->controlBus >> CTRL_MOVE_ADDRESS_HL) & 0b1)
     {
+        logMessage(LOG_LEVEL_DEBUG, "Move address HL");
         cpu->registers[REG_ADDRESS_H] = cpu->registers[REG_H];
         cpu->registers[REG_ADDRESS_L] = cpu->registers[REG_L];
     }
@@ -361,18 +405,22 @@ void tock(CPUState *cpu)
         uint16_t ramAddress = 
             (cpu->registers[REG_ADDRESS_H] << 8) |
             (cpu->registers[REG_ADDRESS_L]);
+        logMessage(LOG_LEVEL_DEBUG, "RAM in address: 0x%x", ramAddress);
         cpu->ram[ramAddress] = cpu->dataBus;
+        logMessage(LOG_LEVEL_DEBUG, "RAM in new RAM value: %d", cpu->ram[ramAddress] = cpu->dataBus);
     }
 
     // Handle status in
     if ((cpu->controlBus >> CTRL_FLAG_IN) & 0b1) {
         cpu->flags = cpu->dataBus;
+        logMessage(LOG_LEVEL_DEBUG, "Flags in new flags value: %d", cpu->flags);
     }
 
     // Reset microtick
     if ((cpu->controlBus >> CTRL_RESET_MICRO_TICK) & 0b1)
     {
         cpu->microinstructionCounter = 0;
+        logMessage(LOG_LEVEL_DEBUG, "Reset microtick");
     }
 
     // Output to STDOUT
@@ -397,19 +445,24 @@ int main(int argc, char **argv)
     char *logLevelName = "info";
     if (argc == 4)
     {
-        char *logLevelName = argv[3];
+        logLevelName = argv[3];
     }
     if (strcmp(logLevelName, "debug") == 0)
     {
         logLevel = LOG_LEVEL_DEBUG;
     }
-    if (strcmp(logLevelName, "info") == 0)
+    else if (strcmp(logLevelName, "info") == 0)
     {
         logLevel = LOG_LEVEL_INFO;
     }
-    if (strcmp(logLevelName, "error") == 0)
+    else if (strcmp(logLevelName, "error") == 0)
     {
         logLevel = LOG_LEVEL_ERROR;
+    }
+    else
+    {
+        fprintf(stderr, "Invalid log level");
+        return 1;
     }
 
     logMessage(LOG_LEVEL_INFO, "Loaded arguments");
