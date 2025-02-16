@@ -1,0 +1,8 @@
+mov a 1
+mov h 3
+and h
+or 5
+not
+xor 128
+out
+hlt

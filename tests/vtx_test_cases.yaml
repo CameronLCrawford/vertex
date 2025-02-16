@@ -4,6 +4,13 @@
   expected_output: "OUTPUT: 10"
 - program: jump_unconditional
   expected_output: "OUTPUT: 20"
-- program: jump_conditional
+- program: jump_carry_conditional
   expected_output: "OUTPUT: 20"
-
+- program: jump_sign_conditional
+  expected_output: "OUTPUT: 20"
+- program: jump_zero_conditional
+  expected_output: "OUTPUT: 20"
+- program: arithmetic
+  expected_output: "OUTPUT: 225"
+- program: logical
+  expected_output: "OUTPUT: 122"

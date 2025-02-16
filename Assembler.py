@@ -1,6 +1,6 @@
 from vtx.VtxVisitor import VtxVisitor
 from vtx.VtxParser import VtxParser
-from instructions import instruction_names
+from instructions import instructions, instruction_names
 
 def convert_address_to_bytes(address: int) -> tuple[int, int]:
     binary_address = bin(address)[2:].zfill(16)
@@ -13,6 +13,7 @@ class Assembler(VtxVisitor):
         self.instructions: list[int] = []
         self.symbol_table: dict[str, int] = {}
         self.current_address = 2**15
+        self.debug_info = []
 
     def visitProgram(self, ctx: VtxParser.ProgramContext):
         for line in ctx.line():
@@ -46,6 +47,12 @@ class Assembler(VtxVisitor):
         if instruction:
             self.instructions += instruction
             self.current_address += len(instruction)
+            debug_instruction = instructions[instruction[0]]
+            self.debug_info.append([
+                debug_instruction.name,
+                debug_instruction.microinstructions,
+            ])
+            self.debug_info += instruction[1:]
 
     def visitMove(self, ctx: VtxParser.MoveContext):
         destination = ctx.destination().getText().upper()
@@ -70,7 +77,7 @@ class Assembler(VtxVisitor):
         if source.REGISTER():
             register = source.REGISTER().getText().upper()
             return [instruction_names.index(f"PSH{register}")]
-        if source.CONSTANT():
+        elif source.CONSTANT():
             immediate = int(source.CONSTANT().getText())
             return [instruction_names.index("PSHI"), immediate]
         elif source.ADDRESS():
@@ -86,18 +93,77 @@ class Assembler(VtxVisitor):
         return [instruction_names.index(f"POP{destination}")]
 
     def visitAdd(self, ctx: VtxParser.AddContext):
-        source = ctx.source().getText().upper()
-        return [instruction_names.index(f"ADD{source}")]
+        source = ctx.source()
+        if source.REGISTER():
+            register = source.REGISTER().getText().upper()
+            return [instruction_names.index(f"ADD{register}")]
+        elif source.CONSTANT():
+            immediate = int(source.CONSTANT().getText())
+            return [instruction_names.index("ADDI"), immediate]
+        elif source.ADDRESS():
+            pass # TODO: implement ADD@
 
     def visitSub(self, ctx: VtxParser.SubContext):
-        source = ctx.source().getText().upper()
-        return [instruction_names.index(f"SUB{source}")]
+        source = ctx.source()
+        if source.REGISTER():
+            register = source.REGISTER().getText().upper()
+            return [instruction_names.index(f"SUB{register}")]
+        elif source.CONSTANT():
+            immediate = int(source.CONSTANT().getText())
+            return [instruction_names.index("SUBI"), immediate]
+        elif source.ADDRESS():
+            pass # TODO: implement SUB@
+
+    def visitBinaryAnd(self, ctx: VtxParser.BinaryAndContext):
+        source = ctx.source()
+        if source.REGISTER():
+            register = source.REGISTER().getText().upper()
+            return [instruction_names.index(f"AND{register}")]
+        elif source.CONSTANT():
+            immediate = int(source.CONSTANT().getText())
+            return [instruction_names.index("ANDI"), immediate]
+        elif source.ADDRESS():
+            pass # TODO: implement AND@
+
+    def visitBinaryOr(self, ctx: VtxParser.BinaryOrContext):
+        source = ctx.source()
+        if source.REGISTER():
+            register = source.REGISTER().getText().upper()
+            return [instruction_names.index(f"OR{register}")]
+        elif source.CONSTANT():
+            immediate = int(source.CONSTANT().getText())
+            return [instruction_names.index("ORI"), immediate]
+        elif source.ADDRESS():
+            pass # TODO: implement OR@
+
+    def visitBinaryXor(self, ctx: VtxParser.BinaryXorContext):
+        source = ctx.source()
+        if source.REGISTER():
+            register = source.REGISTER().getText().upper()
+            return [instruction_names.index(f"XOR{register}")]
+        elif source.CONSTANT():
+            immediate = int(source.CONSTANT().getText())
+            return [instruction_names.index("XORI"), immediate]
+        elif source.ADDRESS():
+            pass # TODO: implement XOR@
+
+    def visitBinaryNot(self, ctx: VtxParser.BinaryNotContext):
+        return [instruction_names.index("NOT")]
+
+    def visitIncrement(self, ctx: VtxParser.IncrementContext):
+        return [instruction_names.index("INC")]
+
+    def visitDecrement(self, ctx: VtxParser.DecrementContext):
+        return [instruction_names.index("DEC")]
 
     def visitShiftLeft(self, ctx: VtxParser.ShiftLeftContext):
         return [instruction_names.index("SHL")]
 
     def visitShiftRight(self, ctx: VtxParser.ShiftRightContext):
         return [instruction_names.index("SHR")]
+
+    def visitNegate(self, ctx: VtxParser.NegateContext):
+        return [instruction_names.index("NEG")]
 
     def visitJump(self, ctx: VtxParser.JumpContext):
         condition = ctx.CONDITION().getText().upper() if ctx.CONDITION() else ""

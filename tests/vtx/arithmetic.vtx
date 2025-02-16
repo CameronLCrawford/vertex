@@ -1,0 +1,16 @@
+mov a 0
+mov h 20
+mov l 10
+add h
+sub l
+inc
+shl
+add 1
+shl
+add h
+dec
+shr
+dec
+neg
+out
+hlt

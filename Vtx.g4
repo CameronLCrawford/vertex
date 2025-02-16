@@ -20,8 +20,15 @@ instruction
         | pop
         | add
         | sub
+        | binaryAnd
+        | binaryOr
+        | binaryXor
+        | binaryNot
+        | increment
+        | decrement
         | shiftLeft
         | shiftRight
+        | negate
         | jump
         | out
         | halt
@@ -57,12 +64,40 @@ sub
         : 'sub' source
         ;
 
+binaryAnd
+        : 'and' source
+        ;
+
+binaryOr
+        : 'or' source
+        ;
+
+binaryXor
+        : 'xor' source
+        ;
+
+binaryNot
+        : 'not'
+        ;
+
+increment
+        : 'inc'
+        ;
+
+decrement
+        : 'dec'
+        ;
+
 shiftLeft
         : 'shl'
         ;
 
 shiftRight
         : 'shr'
+        ;
+
+negate
+        : 'neg'
         ;
 
 jump
@@ -99,10 +134,10 @@ ADDRESS
 
 CONDITION
         : 'z'
-        | 'n'
+        | 's'
         | 'c'
         | 'nz'
-        | 'nn'
+        | 'ns'
         | 'nc'
         ;
 

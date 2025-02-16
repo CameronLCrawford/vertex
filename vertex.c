@@ -280,8 +280,7 @@ void tick(CPUState *cpu)
     {
         logMessage(LOG_LEVEL_DEBUG, "Acc before ALU operation: %d", acc);
         logMessage(LOG_LEVEL_DEBUG, "Acc temp before ALU operation: %d", temp);
-        logMessage(LOG_LEVEL_DEBUG, "Bus before ALU operation: %d", bus);
-        logMessage(LOG_LEVEL_DEBUG, "Carry before ALU oepration: %d", carry);
+        logMessage(LOG_LEVEL_DEBUG, "Carry before ALU operation: %d", carry);
         logMessage(LOG_LEVEL_DEBUG, "Flags before ALU operation: %d", cpu->flags);
     }
     switch(aluCode)
@@ -306,7 +305,7 @@ void tick(CPUState *cpu)
             bus = acc ^ temp;
             break;
         case NOT:
-            bus = !acc;
+            bus = ~acc;
             break;
         case INC:
             bus = acc + 1;
@@ -349,7 +348,6 @@ void tick(CPUState *cpu)
     if (aluCode > 0) {
         cpu->dataBus = bus;
         cpu->flags = (cpu->flags & ~(1 << FLAG_CARRY)) | (carry << FLAG_CARRY);
-        logMessage(LOG_LEVEL_DEBUG, "Acc after ALU operation: %d", acc);
         logMessage(LOG_LEVEL_DEBUG, "Acc temp after ALU operation: %d", temp);
         logMessage(LOG_LEVEL_DEBUG, "Bus after ALU operation: %d", bus);
         logMessage(LOG_LEVEL_DEBUG, "Carry after ALU operation: %d", carry);

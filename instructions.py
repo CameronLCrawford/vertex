@@ -274,7 +274,7 @@ instructions: list[Instruction] = [
 
     # NEGATE
     Instruction(
-        "NEGA",
+        "NEG",
         "Arithmetic negate register A",
         [UNEG | AI, RST | CNI],
     ),
@@ -328,7 +328,7 @@ instructions: list[Instruction] = [
         [-1, 0, 0],
     ),
     Instruction(
-        "JNSI",
+        "JSI",
         "Jump if sign to 16-bit immediate",
         jump_immediate,
         [0, 1, 0],
