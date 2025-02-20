@@ -25,6 +25,9 @@ def run_vtx_test(program_name):
 @pytest.mark.parametrize("test_case", test_cases, ids=[tc["program"] for tc in test_cases])
 def test_vtx(test_case):
     program = test_case["program"]
-    expected_output = test_case["expected_output"]
+    expected_outputs = test_case["expected_output"]
+    if isinstance(expected_outputs, str):
+        expected_outputs = [expected_outputs]
     output = run_vtx_test(program)
-    assert expected_output in output, f"Test {program} failed!"
+    for expected_output in expected_outputs:
+        assert expected_output in output, f"Test {program} failed!"

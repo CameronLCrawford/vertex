@@ -7,7 +7,7 @@ program
         ;
 
 line
-        : (label | instruction) EOL
+        : (label | instruction)
         ;
 
 label
@@ -28,7 +28,6 @@ instruction
         | decrement
         | shiftLeft
         | shiftRight
-        | negate
         | jump
         | out
         | halt
@@ -57,11 +56,11 @@ pop
         ;
 
 add
-        : 'add' source
+        : 'add' CARRY? source
         ;
 
 sub
-        : 'sub' source
+        : 'sub' CARRY? source
         ;
 
 binaryAnd
@@ -81,11 +80,11 @@ binaryNot
         ;
 
 increment
-        : 'inc'
+        : 'inc' CARRY?
         ;
 
 decrement
-        : 'dec'
+        : 'dec' CARRY?
         ;
 
 shiftLeft
@@ -93,11 +92,7 @@ shiftLeft
         ;
 
 shiftRight
-        : 'shr'
-        ;
-
-negate
-        : 'neg'
+        : 'shr' CARRY?
         ;
 
 jump
@@ -124,6 +119,8 @@ CONSTANT
 
 REGISTER
         : 'a'
+        | 'b'
+        | 'c'
         | 'h'
         | 'l'
         ;
@@ -133,19 +130,19 @@ ADDRESS
         ;
 
 CONDITION
-        : 'z'
-        | 's'
-        | 'c'
-        | 'nz'
-        | 'ns'
-        | 'nc'
+        : 'zf'
+        | 'sf'
+        | 'cf'
+        | 'nzf'
+        | 'nsf'
+        | 'ncf'
+        ;
+
+CARRY
+        : 'cc'
         ;
 
 // Whitespace and comments
-
-EOL
-        : [\r\n]+
-        ;
 
 WS
         : [ \t\r\n]+ -> skip

@@ -1,3 +1,6 @@
 mov a 10
+mov h a
+mov a 0
+mov a h
 out
 hlt

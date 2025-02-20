@@ -43,6 +43,9 @@ typedef enum
     // Accumulator registers
     REG_A, REG_A_TEMP,
 
+    // General-purpose registers
+    REG_B, REG_C,
+
     // HL register pair
     REG_H, REG_L,
 
@@ -57,9 +60,6 @@ typedef enum
 
     // Stack register pair
     REG_STACK_H, REG_STACK_L,
-
-    // Object register pair
-    REG_OBJECT_H, REG_OBJECT_L,
 
     // Stores current instruction
     REG_INSTRUCTION
@@ -90,10 +90,7 @@ typedef enum
     SHR, SHL,
 
     // Carry conditional
-    ADDC, SUBC, INCC, DECC,
-
-    // Unary negate
-    UNEG
+    ADDC, SUBC, INCC, DECC, SHRC
 } AluOp;
 
 typedef struct
@@ -317,6 +314,7 @@ void tick(CPUState *cpu)
             break;
         case SHR:
             bus = acc >> 1;
+            carry = acc & 0b1;
             break;
         case SHL:
             bus = acc << 1;
@@ -338,8 +336,9 @@ void tick(CPUState *cpu)
             bus = acc - carry;
             carry = acc < carry;
             break;
-        case UNEG:
-            bus = -acc;
+        case SHRC:
+            bus = (acc >> 1) | ((uint8_t)carry << 7);
+            carry = acc & 0b1;
             break;
         default:
             logMessage(LOG_LEVEL_ERROR, "ALU switch hit default");

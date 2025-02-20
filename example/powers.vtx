@@ -2,7 +2,7 @@ mov a 1
 MAIN:
 out
 shl
-jmp z END
+jmp zf END
 jmp MAIN
 END:
 hlt

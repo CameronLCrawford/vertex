@@ -94,23 +94,33 @@ class Assembler(VtxVisitor):
 
     def visitAdd(self, ctx: VtxParser.AddContext):
         source = ctx.source()
+        carry = ctx.CARRY()
+        if carry:
+            instruction = "ADDC"
+        else:
+            instruction = "ADD"
         if source.REGISTER():
             register = source.REGISTER().getText().upper()
-            return [instruction_names.index(f"ADD{register}")]
+            return [instruction_names.index(f"{instruction}{register}")]
         elif source.CONSTANT():
             immediate = int(source.CONSTANT().getText())
-            return [instruction_names.index("ADDI"), immediate]
+            return [instruction_names.index(f"{instruction}I"), immediate]
         elif source.ADDRESS():
             pass # TODO: implement ADD@
 
     def visitSub(self, ctx: VtxParser.SubContext):
         source = ctx.source()
+        carry = ctx.CARRY()
+        if carry:
+            instruction = "SUBC"
+        else:
+            instruction = "SUB"
         if source.REGISTER():
             register = source.REGISTER().getText().upper()
-            return [instruction_names.index(f"SUB{register}")]
+            return [instruction_names.index(f"{instruction}{register}")]
         elif source.CONSTANT():
             immediate = int(source.CONSTANT().getText())
-            return [instruction_names.index("SUBI"), immediate]
+            return [instruction_names.index(f"{instruction}I"), immediate]
         elif source.ADDRESS():
             pass # TODO: implement SUB@
 
@@ -151,19 +161,30 @@ class Assembler(VtxVisitor):
         return [instruction_names.index("NOT")]
 
     def visitIncrement(self, ctx: VtxParser.IncrementContext):
-        return [instruction_names.index("INC")]
+        carry = ctx.CARRY()
+        if carry:
+            instruction = "INCC"
+        else:
+            instruction = "INC"
+        return [instruction_names.index(instruction)]
 
     def visitDecrement(self, ctx: VtxParser.DecrementContext):
-        return [instruction_names.index("DEC")]
+        carry = ctx.CARRY()
+        if carry:
+            instruction = "DECC"
+        else:
+            instruction = "DEC"
+        return [instruction_names.index(instruction)]
 
     def visitShiftLeft(self, ctx: VtxParser.ShiftLeftContext):
         return [instruction_names.index("SHL")]
 
     def visitShiftRight(self, ctx: VtxParser.ShiftRightContext):
-        return [instruction_names.index("SHR")]
-
-    def visitNegate(self, ctx: VtxParser.NegateContext):
-        return [instruction_names.index("NEG")]
+        if ctx.CARRY():
+            instruction = "SHRC"
+        else:
+            instruction = "SHR"
+        return [instruction_names.index(instruction)]
 
     def visitJump(self, ctx: VtxParser.JumpContext):
         condition = ctx.CONDITION().getText().upper() if ctx.CONDITION() else ""

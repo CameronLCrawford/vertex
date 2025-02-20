@@ -11,6 +11,8 @@ add h
 dec
 shr
 dec
-neg
+mov l a ' negate routine
+mov a 0
+sub l
 out
 hlt

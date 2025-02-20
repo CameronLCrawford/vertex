@@ -1,0 +1,37 @@
+' x
+psh 84
+psh 167
+
+' y
+psh 48
+psh 173
+
+' l = yl; h = yh; a = xl
+pop l
+pop h
+pop a
+
+' this sets carry flag
+' l = zl
+add l
+mov l a
+
+' h = yh; x = xh
+pop a
+
+' add carry conditional
+' h = zh
+add cc h
+mov h a
+
+' push z
+psh h
+psh l
+
+' output
+pop a
+out
+pop a
+out
+hlt
+

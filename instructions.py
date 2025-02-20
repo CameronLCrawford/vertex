@@ -12,35 +12,35 @@
 # Register in codes
 AI  =   I0
 ATI =   I1
-HI  =   I1 | I0
-LI  =   I2
-CHI =   I2 | I0
-CLI =   I2 | I1
-AHI =   I2 | I1 | I0
-ALI =   I3
-BHI =   I3 | I0
-BLI =   I3 | I1
-SHI =   I3 | I1 | I0
-SLI =   I3 | I2
-OHI =   I3 | I2 | I0
-OLI =   I3 | I2 | I1
+BI  =   I1 | I0
+CI  =   I2
+HI  =   I2 | I0
+LI  =   I2 | I1
+CHI =   I2 | I1 | I0
+CLI =   I3
+AHI =   I3 | I0
+ALI =   I3 | I1
+BHI =   I3 | I1 | I0
+BLI =   I3 | I2
+SHI =   I3 | I2 | I0
+SLI =   I3 | I2 | I1
 II  =   I3 | I2 | I1 | I0
 
 # Register out codes
 AO  =   O0
 ATO =   O1
-HO  =   O1 | O0
-LO  =   O2
-CHO =   O2 | O0
-CLO =   O2 | O1
-AHO =   O2 | O1 | O0
-ALO =   O3
-BHO =   O3 | O0
-BLO =   O3 | O1
-SHO =   O3 | O1 | O0
-SLO =   O3 | O2
-OHO =   O3 | O2 | O0
-OLO =   O3 | O2 | O1
+BO  =   O1 | O0
+CO  =   O2
+HO  =   O2 | O0
+LO  =   O2 | O1
+CHO =   O2 | O1 | O0
+CLO =   O3
+AHO =   O3 | O0
+ALO =   O3 | O1
+BHO =   O3 | O1 | O0
+BLO =   O3 | O2
+SHO =   O3 | O2 | O0
+SLO =   O3 | O2 | O1
 IO  =   O3 | O2 | O1 | O0
 
 # ALU codes
@@ -58,7 +58,7 @@ ADDC    = A3 | A1 | A0
 SUBC    = A3 | A2
 INCC    = A3 | A2 | A0
 DECC    = A3 | A2 | A1
-UNEG    = A3 | A2 | A1 | A0
+SHRC    = A3 | A2 | A1 | A0
 
 # Instructions
 # Each instruction is a list of control bit states.
@@ -103,6 +103,16 @@ instructions: list[Instruction] = [
         [AO | ATI, ADD | AI, RST | CNI],
     ),
     Instruction(
+        "ADDB",
+        "Add B to A",
+        [BO | ATI, ADD | AI, RST | CNI],
+    ),
+    Instruction(
+        "ADDC",
+        "Add C to A",
+        [CO | ATI, ADD | AI, RST | CNI],
+    ),
+    Instruction(
         "ADDH",
         "Add H to A",
         [HO | ATI, ADD | AI, RST | CNI],
@@ -119,6 +129,16 @@ instructions: list[Instruction] = [
     ),
 
     # SUBTRACT
+    Instruction(
+        "SUBB",
+        "Subtract B from A",
+        [BO | ATI, SUB | AI, RST | CNI],
+    ),
+    Instruction(
+        "SUBC",
+        "Subtract C from A",
+        [CO | ATI, SUB | AI, RST | CNI],
+    ),
     Instruction(
         "SUBH",
         "Subtract H from A",
@@ -137,6 +157,16 @@ instructions: list[Instruction] = [
 
     # AND
     Instruction(
+        "ANDB",
+        "And B with A",
+        [BO | ATI, AND | AI, RST | CNI]
+    ),
+    Instruction(
+        "ANDC",
+        "And C with A",
+        [CO | ATI, AND | AI, RST | CNI]
+    ),
+    Instruction(
         "ANDH",
         "And H with A",
         [HO | ATI, AND | AI, RST | CNI]
@@ -154,6 +184,16 @@ instructions: list[Instruction] = [
 
     # OR
     Instruction(
+        "ORB",
+        "Or B with A",
+        [BO | ATI, OR | AI, RST | CNI]
+    ),
+    Instruction(
+        "ORC",
+        "Or C with A",
+        [CO | ATI, OR | AI, RST | CNI]
+    ),
+    Instruction(
         "ORH",
         "Or H with A",
         [HO | ATI, OR | AI, RST | CNI]
@@ -170,6 +210,16 @@ instructions: list[Instruction] = [
     ),
 
     # XOR
+    Instruction(
+        "XORB",
+        "Xor B with A",
+        [BO | ATI, XOR | AI, RST | CNI]
+    ),
+    Instruction(
+        "XORC",
+        "Xor C with A",
+        [CO | ATI, XOR | AI, RST | CNI]
+    ),
     Instruction(
         "XORH",
         "Xor H with A",
@@ -226,6 +276,16 @@ instructions: list[Instruction] = [
         [AO | ATI, ADDC | AI, RST | CNI],
     ),
     Instruction(
+        "ADDCB",
+        "Add B to A (carry conditional)",
+        [BO | ATI, ADDC | AI, RST | CNI],
+    ),
+    Instruction(
+        "ADDCC",
+        "Add C to A (carry conditional)",
+        [CO | ATI, ADDC | AI, RST | CNI],
+    ),
+    Instruction(
         "ADDCH",
         "Add H to A (carry conditional)",
         [HO | ATI, ADDC | AI, RST | CNI],
@@ -242,6 +302,16 @@ instructions: list[Instruction] = [
     ),
 
     # SUBTRACT (CARRY CONDITIONAL)
+    Instruction(
+        "SUBCB",
+        "Subtract B from A (carry conditional)",
+        [BO | ATI, SUBC | AI, RST | CNI],
+    ),
+    Instruction(
+        "SUBCC",
+        "Subtract C from A (carry conditional)",
+        [CO | ATI, SUBC | AI, RST | CNI],
+    ),
     Instruction(
         "SUBCH",
         "Subtract H from A (carry conditional)",
@@ -272,19 +342,28 @@ instructions: list[Instruction] = [
         [DECC | AI, RST | CNI],
     ),
 
-    # NEGATE
+    # SHIFT RIGHT (CARRY CONDITIONAL)
     Instruction(
-        "NEG",
-        "Arithmetic negate register A",
-        [UNEG | AI, RST | CNI],
+        "SHRC",
+        "Shift A right (carry conditional)",
+        [SHRC | AI, RST | CNI],
     ),
-
 
     ### DATA ###
     Instruction(
         "MOVAI",
         "Move immediate into A",
         [CNI | ADI | RO | AI, RST | CNI],
+    ),
+    Instruction(
+        "MOVBI",
+        "Move immediate into B",
+        [CNI | ADI | RO | BI, RST | CNI],
+    ),
+    Instruction(
+        "MOVCI",
+        "Move immediate into C",
+        [CNI | ADI | RO | CI, RST | CNI],
     ),
     Instruction(
         "MOVHI",
@@ -302,6 +381,16 @@ instructions: list[Instruction] = [
         [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | ALI, RO | AI, RST | CNI],
     ),
     Instruction(
+        "MOVB@",
+        "Move value at address in adjacent two bytes into B",
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | ALI, RO | BI, RST | CNI],
+    ),
+    Instruction(
+        "MOVC@",
+        "Move value at address in adjacent two bytes into C",
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | ALI, RO | CI, RST | CNI],
+    ),
+    Instruction(
         "MOVH@",
         "Move value at address in adjacent two bytes into H",
         [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | ALI, RO | HI, RST | CNI],
@@ -312,41 +401,153 @@ instructions: list[Instruction] = [
         [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | ALI, RO | LI, RST | CNI],
     ),
 
+    # REGISTER-REGISTER MOVES
+
+    # MOVE INTO A
+    Instruction(
+        "MOVAB",
+        "Move B into A",
+        [BO | AI, RST | CNI],
+    ),
+    Instruction(
+        "MOVAC",
+        "Move C into A",
+        [CO | AI, RST | CNI],
+    ),
+    Instruction(
+        "MOVAL",
+        "Move L into A",
+        [LO | AI, RST | CNI],
+    ),
+    Instruction(
+        "MOVAH",
+        "Move H into A",
+        [HO | AI, RST | CNI],
+    ),
+
+    # MOVE INTO B
+    Instruction(
+        "MOVBA",
+        "Move A into B",
+        [AO | BI, RST | CNI],
+    ),
+    Instruction(
+        "MOVBC",
+        "Move C into B",
+        [CO | BI, RST | CNI],
+    ),
+    Instruction(
+        "MOVBL",
+        "Move L into B",
+        [LO | BI, RST | CNI],
+    ),
+    Instruction(
+        "MOVBH",
+        "Move H into B",
+        [HO | BI, RST | CNI],
+    ),
+
+    # MOVE INTO C
+    Instruction(
+        "MOVCA",
+        "Move A into C",
+        [AO | CI, RST | CNI],
+    ),
+    Instruction(
+        "MOVCB",
+        "Move B into C",
+        [BO | CI, RST | CNI],
+    ),
+    Instruction(
+        "MOVCL",
+        "Move L into C",
+        [LO | CI, RST | CNI],
+    ),
+    Instruction(
+        "MOVCH",
+        "Move H into C",
+        [HO | CI, RST | CNI],
+    ),
+
+    # MOVE INTO L
+    Instruction(
+        "MOVLA",
+        "Move A into L",
+        [AO | LI, RST | CNI],
+    ),
+    Instruction(
+        "MOVLB",
+        "Move B into L",
+        [BO | LI, RST | CNI],
+    ),
+    Instruction(
+        "MOVLC",
+        "Move C into L",
+        [CO | LI, RST | CNI],
+    ),
+    Instruction(
+        "MOVLH",
+        "Move H into L",
+        [HO | LI, RST | CNI],
+    ),
+
+    # MOVE INTO H
+    Instruction(
+        "MOVHA",
+        "Move A into H",
+        [AO | HI, RST | CNI],
+    ),
+    Instruction(
+        "MOVHB",
+        "Move B into H",
+        [BO | HI, RST | CNI],
+    ),
+    Instruction(
+        "MOVHC",
+        "Move C into H",
+        [CO | HI, RST | CNI],
+    ),
+    Instruction(
+        "MOVHL",
+        "Move L into H",
+        [LO | HI, RST | CNI],
+    ),
+
 
     ### JUMP ###
     # CONDITIONAL
     Instruction(
-        "JZI",
+        "JZFI",
         "Jump if zero to 16-bit immediate",
         jump_immediate,
         [1, 0, 0],
     ),
     Instruction(
-        "JNZI",
+        "JNZFI",
         "Jump if not zero to 16-bit immediate",
         jump_immediate,
         [-1, 0, 0],
     ),
     Instruction(
-        "JSI",
+        "JSFI",
         "Jump if sign to 16-bit immediate",
         jump_immediate,
         [0, 1, 0],
     ),
     Instruction(
-        "JNSI",
+        "JNSFI",
         "Jump if not sign to 16-bit immediate",
         jump_immediate,
         [0, -1, 0],
     ),
     Instruction(
-        "JCI",
+        "JCFI",
         "Jump if carry to 16-bit immediate",
         jump_immediate,
         [0, 0, 1],
     ),
     Instruction(
-        "JNCI",
+        "JNCFI",
         "Jump if not carry to 16-bit immediate",
         jump_immediate,
         [0, 0, -1],
@@ -372,6 +573,16 @@ instructions: list[Instruction] = [
         [STD | MAS, AO | RI, RST | CNI],
     ),
     Instruction(
+        "PSHB",
+        "Push B",
+        [STD | MAS, BO | RI, RST | CNI],
+    ),
+    Instruction(
+        "PSHC",
+        "Push C",
+        [STD | MAS, CO | RI, RST | CNI],
+    ),
+    Instruction(
         "PSHH",
         "Push H",
         [STD | MAS, HO | RI, RST | CNI],
@@ -392,6 +603,16 @@ instructions: list[Instruction] = [
         "POPA",
         "Pop A",
         [MAS, STI | AI | RO, RST | CNI],
+    ),
+    Instruction(
+        "POPB",
+        "Pop B",
+        [MAS, STI | BI | RO, RST | CNI],
+    ),
+    Instruction(
+        "POPC",
+        "Pop C",
+        [MAS, STI | CI | RO, RST | CNI],
     ),
     Instruction(
         "POPH",
@@ -417,5 +638,11 @@ instructions: list[Instruction] = [
     ),
 ]
 
+# this may make life easier one day
+if len(instructions) > 256:
+    raise Exception("More than 256 instructions!")
 instruction_names = [instruction.name for instruction in instructions]
 invalid_conditional_jump = [MAC, RO | II, CNI, CNI, RST | CNI]
+
+if __name__ == "__main__":
+    print(f"There are {len(instructions)} instructions")

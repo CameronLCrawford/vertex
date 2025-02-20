@@ -14,3 +14,11 @@
   expected_output: "OUTPUT: 225"
 - program: logical
   expected_output: "OUTPUT: 122"
+- program: double_addition
+  expected_output:
+    - "OUTPUT: 84"
+    - "OUTPUT: 133"
+- program: multiplication
+  expected_output:
+    - "OUTPUT: 39"
+    - "OUTPUT: 16"

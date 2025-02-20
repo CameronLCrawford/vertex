@@ -1,0 +1,37 @@
+psh 100
+psh 100
+
+pop l ' multiplier
+pop b ' multiplicand
+
+mov c 8 ' counter
+
+ONE:
+mov a l
+and 1
+jmp zf TWO
+mov a h
+add b
+mov h a
+
+TWO:
+mov a h
+shr
+mov h a
+mov a l
+shr cc
+mov l a
+mov a c
+dec
+mov c a
+jmp nzf ONE
+
+psh h
+psh l
+
+' output
+pop a
+out
+pop a
+out
+hlt
