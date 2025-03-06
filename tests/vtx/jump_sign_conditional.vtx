@@ -1,15 +1,15 @@
-mov a 128
+ldr a 128
 jmp nsf FAILED_NS_FALSE
 jmp PASSED_NS_FALSE
 FAILED_NS_FALSE:
-mov a 1
+ldr a 1
 out
 hlt
 
 PASSED_NS_FALSE:
-mov a 10
+ldr a 10
 jmp nsf PASSED_NS_TRUE
-mov a 2
+ldr a 2
 out
 hlt
 
@@ -17,19 +17,19 @@ PASSED_NS_TRUE:
 jmp sf FAILED_S_FALSE
 jmp PASSED_S_FALSE
 FAILED_S_FALSE:
-mov a 3
+ldr a 3
 out
 hlt
 
 PASSED_S_FALSE:
-mov a 128
+ldr a 128
 jmp sf PASSED_S_TRUE
-mov a 4
+ldr a 4
 out
 hlt
 
 PASSED_S_TRUE:
-mov a 20
+ldr a 20
 out
 hlt
 

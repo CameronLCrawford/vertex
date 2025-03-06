@@ -15,7 +15,8 @@ label
         ;
 
 instruction
-        : move
+        : loadRegister
+        | store
         | push
         | pop
         | add
@@ -39,12 +40,12 @@ source
         | ADDRESS
         ;
 
-destination
-        : REGISTER
+loadRegister
+        : 'ldr' REGISTER source
         ;
 
-move
-        : 'mov' destination source
+store
+        : 'str' ADDRESS REGISTER
         ;
 
 push
@@ -52,7 +53,7 @@ push
         ;
 
 pop
-        : 'pop' destination
+        : 'pop' REGISTER
         ;
 
 add

@@ -4,9 +4,14 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <sys/fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
 
 #define COMMAND_ROM_BYTES 65536
 #define PROGRAM_ROM_BYTES 65536
+#define RAM_SIZE 65536
+#define SHM_FILE "/tmp/vtx_shm"
 
 typedef enum
 {
@@ -466,8 +471,32 @@ int main(int argc, char **argv)
 
     // Instantiate CPU
     CPUState cpu = {0};
-    cpu.ram = (uint8_t *)malloc(sizeof(uint8_t) * PROGRAM_ROM_BYTES);
+
+    // Connect to mmap RAM
+    int shm_fd = open(SHM_FILE, O_RDWR | O_CREAT, 0666);
+    if (shm_fd < 0) {
+        logMessage(LOG_LEVEL_ERROR, "Unable to open shared memory file");
+        return 1;
+    }
+    if (ftruncate(shm_fd, RAM_SIZE) < 0) {
+        logMessage(LOG_LEVEL_ERROR, "Shared memory file different size to program ROM");
+        close(shm_fd);
+        return 1;
+    }
+    cpu.ram = mmap(NULL, RAM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+    if (cpu.ram == MAP_FAILED) {
+        logMessage(LOG_LEVEL_ERROR, "Map failed");
+        close(shm_fd);
+        return 1;
+    }
+    close(shm_fd);
+
     cpu.controlROM = (uint32_t *)malloc(sizeof(uint32_t) * COMMAND_ROM_BYTES);
+    if (!cpu.controlROM) {
+        logMessage(LOG_LEVEL_ERROR, "Unable to allocate control ROM");
+        munmap(cpu.ram, RAM_SIZE);
+        return 1;
+    }
 
     // Initialisation:
 
@@ -536,7 +565,7 @@ int main(int argc, char **argv)
     return 0;
 
 ROM_LOAD_ERROR:
-    free(cpu.ram);
+    munmap(cpu.ram, RAM_SIZE);
     free(cpu.controlROM);
     return 1;
 }

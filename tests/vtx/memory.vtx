@@ -1,0 +1,5 @@
+ldr b 10
+str @0 b
+ldr a @0
+out
+hlt

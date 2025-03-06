@@ -1,6 +1,6 @@
-mov a 0
-mov h 20
-mov l 10
+ldr a 0
+ldr h 20
+ldr l 10
 add h
 sub l
 inc
@@ -11,8 +11,8 @@ add h
 dec
 shr
 dec
-mov l a ' negate routine
-mov a 0
+ldr l a ' negate routine
+ldr a 0
 sub l
 out
 hlt

@@ -4,26 +4,26 @@ psh 100
 pop l ' multiplier
 pop b ' multiplicand
 
-mov c 8 ' counter
+ldr c 8 ' counter
 
 ONE:
-mov a l
+ldr a l
 and 1
 jmp zf TWO
-mov a h
+ldr a h
 add b
-mov h a
+ldr h a
 
 TWO:
-mov a h
+ldr a h
 shr
-mov h a
-mov a l
+ldr h a
+ldr a l
 shr cc
-mov l a
-mov a c
+ldr l a
+ldr a c
 dec
-mov c a
+ldr c a
 jmp nzf ONE
 
 psh h

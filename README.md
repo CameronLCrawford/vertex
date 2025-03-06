@@ -2,7 +2,7 @@
 
 ## antlr4
 For general wisdom, see [here](https://tomassetti.me/antlr-mega-tutorial/).
-For installation, install 4.13.2 from [here](https://www.antlr.org/download.html) and move the `.jar` to `/usr/local/lib/`.
+For installation, install 4.13.2 from [here](https://www.antlr.org/download.html) and move the downloaded `.jar` to `/usr/local/lib/`.
 
 ## Python3 venv
 - `python3 -m venv .venv`
@@ -34,7 +34,4 @@ For installation, install 4.13.2 from [here](https://www.antlr.org/download.html
 `./out/vertex roms/control roms/program`
 **or**
 `./out/vertex roms/control roms/program > out/log 2>&1`
-
-# Specification
-A specification for the design and function of the CPU is given in `spec.md`.
 

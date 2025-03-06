@@ -14,7 +14,7 @@ pop a
 ' this sets carry flag
 ' l = zl
 add l
-mov l a
+ldr l a
 
 ' h = yh; x = xh
 pop a
@@ -22,7 +22,7 @@ pop a
 ' add carry conditional
 ' h = zh
 add cc h
-mov h a
+ldr h a
 
 ' push z
 psh h

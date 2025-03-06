@@ -1,15 +1,15 @@
-mov a 0
+ldr a 0
 jmp nzf FAILED_NZ_FALSE
 jmp PASSED_NZ_FALSE
 FAILED_NZ_FALSE:
-mov a 1
+ldr a 1
 out
 hlt
 
 PASSED_NZ_FALSE:
-mov a 10
+ldr a 10
 jmp nzf PASSED_NZ_TRUE
-mov a 2
+ldr a 2
 out
 hlt
 
@@ -17,18 +17,18 @@ PASSED_NZ_TRUE:
 jmp zf FAILED_Z_FALSE
 jmp PASSED_Z_FALSE
 FAILED_Z_FALSE:
-mov a 3
+ldr a 3
 out
 hlt
 
 PASSED_Z_FALSE:
-mov a 0
+ldr a 0
 jmp zf PASSED_Z_TRUE
-mov a 4
+ldr a 4
 out
 hlt
 
 PASSED_Z_TRUE:
-mov a 20
+ldr a 20
 out
 hlt

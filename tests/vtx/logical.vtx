@@ -1,5 +1,5 @@
-mov a 1
-mov h 3
+ldr a 1
+ldr h 3
 and h
 or 5
 not

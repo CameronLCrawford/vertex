@@ -127,6 +127,11 @@ instructions: list[Instruction] = [
         "Add immediate to A",
         [CNI | ADI | RO | ATI, ADD | AI, RST | CNI],
     ),
+    Instruction(
+        "ADD@",
+        "Add value at address in adjacent two bytes to A",
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | ATI, ADD | AI]
+    ),
 
     # SUBTRACT
     Instruction(
@@ -153,6 +158,11 @@ instructions: list[Instruction] = [
         "SUBI",
         "Subtract immediate from A",
         [CNI | ADI | RO | ATI, SUB | AI, RST | CNI],
+    ),
+    Instruction(
+        "SUB@",
+        "Subtract value at address in adjacent two bytes from A",
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | ATI, SUB | AI]
     ),
 
     # AND
@@ -181,6 +191,11 @@ instructions: list[Instruction] = [
         "And immediate with A",
         [CNI | ADI | RO | ATI, AND | AI, RST | CNI]
     ),
+    Instruction(
+        "AND@",
+        "And value at address in adjacent two bytes with A",
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | ATI, AND | AI]
+    ),
 
     # OR
     Instruction(
@@ -208,6 +223,11 @@ instructions: list[Instruction] = [
         "Or immediate with A",
         [CNI | ADI | RO | ATI, OR | AI, RST | CNI]
     ),
+    Instruction(
+        "OR@",
+        "Or value at address in adjacent two bytes with A",
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | ATI, OR | AI]
+    ),
 
     # XOR
     Instruction(
@@ -234,6 +254,11 @@ instructions: list[Instruction] = [
         "XORI",
         "Xor immediate with A",
         [CNI | ADI | RO | ATI, XOR | AI, RST | CNI]
+    ),
+    Instruction(
+        "XOR@",
+        "Xor value at address in adjacent two bytes with A",
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | ATI, XOR | AI]
     ),
 
     # NOT
@@ -300,6 +325,11 @@ instructions: list[Instruction] = [
         "Add immediate to A (carry conditional)",
         [CNI | ADI | RO | ATI, ADDC | AI, RST | CNI],
     ),
+    Instruction(
+        "ADDC@",
+        "Add value at address in adjacent two bytes to A (carry conditional)",
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | ATI, ADDC | AI]
+    ),
 
     # SUBTRACT (CARRY CONDITIONAL)
     Instruction(
@@ -327,6 +357,11 @@ instructions: list[Instruction] = [
         "Subtract immediate from A (carry conditional)",
         [CNI | ADI | RO | ATI, SUBC | AI, RST | CNI],
     ),
+    Instruction(
+        "SUBC@",
+        "Subtract value at address in adjacent two bytes from A (carry conditional)",
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | ATI, SUBC | AI]
+    ),
 
     # INCREMENT (CARRY CONDITIONAL)
     Instruction(
@@ -350,169 +385,204 @@ instructions: list[Instruction] = [
     ),
 
     ### DATA ###
+
+    # IMMEDIATE MOVES
     Instruction(
-        "MOVAI",
+        "LDRAI",
         "Move immediate into A",
         [CNI | ADI | RO | AI, RST | CNI],
     ),
     Instruction(
-        "MOVBI",
+        "LDRBI",
         "Move immediate into B",
         [CNI | ADI | RO | BI, RST | CNI],
     ),
     Instruction(
-        "MOVCI",
+        "LDRCI",
         "Move immediate into C",
         [CNI | ADI | RO | CI, RST | CNI],
     ),
     Instruction(
-        "MOVHI",
+        "LDRHI",
         "Move immediate into H",
         [CNI | ADI | RO | HI, RST | CNI],
     ),
     Instruction(
-        "MOVLI",
+        "LDRLI",
         "Move immediate into L",
         [CNI | ADI | RO | LI, RST | CNI],
     ),
+
+    # MEMORY MOVES
     Instruction(
-        "MOVA@",
+        "LDRA@",
         "Move value at address in adjacent two bytes into A",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | ALI, RO | AI, RST | CNI],
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | AI, RST | CNI],
     ),
     Instruction(
-        "MOVB@",
+        "LDRB@",
         "Move value at address in adjacent two bytes into B",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | ALI, RO | BI, RST | CNI],
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | BI, RST | CNI],
     ),
     Instruction(
-        "MOVC@",
+        "LDRC@",
         "Move value at address in adjacent two bytes into C",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | ALI, RO | CI, RST | CNI],
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | CI, RST | CNI],
     ),
     Instruction(
-        "MOVH@",
+        "LDRH@",
         "Move value at address in adjacent two bytes into H",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | ALI, RO | HI, RST | CNI],
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | HI, RST | CNI],
     ),
     Instruction(
-        "MOVL@",
+        "LDRL@",
         "Move value at address in adjacent two bytes into L",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | ALI, RO | LI, RST | CNI],
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | LI, RST | CNI],
     ),
 
     # REGISTER-REGISTER MOVES
 
     # MOVE INTO A
     Instruction(
-        "MOVAB",
+        "LDRAB",
         "Move B into A",
         [BO | AI, RST | CNI],
     ),
     Instruction(
-        "MOVAC",
+        "LDRAC",
         "Move C into A",
         [CO | AI, RST | CNI],
     ),
     Instruction(
-        "MOVAL",
+        "LDRAL",
         "Move L into A",
         [LO | AI, RST | CNI],
     ),
     Instruction(
-        "MOVAH",
+        "LDRAH",
         "Move H into A",
         [HO | AI, RST | CNI],
     ),
 
     # MOVE INTO B
     Instruction(
-        "MOVBA",
+        "LDRBA",
         "Move A into B",
         [AO | BI, RST | CNI],
     ),
     Instruction(
-        "MOVBC",
+        "LDRBC",
         "Move C into B",
         [CO | BI, RST | CNI],
     ),
     Instruction(
-        "MOVBL",
+        "LDRBL",
         "Move L into B",
         [LO | BI, RST | CNI],
     ),
     Instruction(
-        "MOVBH",
+        "LDRBH",
         "Move H into B",
         [HO | BI, RST | CNI],
     ),
 
     # MOVE INTO C
     Instruction(
-        "MOVCA",
+        "LDRCA",
         "Move A into C",
         [AO | CI, RST | CNI],
     ),
     Instruction(
-        "MOVCB",
+        "LDRCB",
         "Move B into C",
         [BO | CI, RST | CNI],
     ),
     Instruction(
-        "MOVCL",
+        "LDRCL",
         "Move L into C",
         [LO | CI, RST | CNI],
     ),
     Instruction(
-        "MOVCH",
+        "LDRCH",
         "Move H into C",
         [HO | CI, RST | CNI],
     ),
 
     # MOVE INTO L
     Instruction(
-        "MOVLA",
+        "LDRLA",
         "Move A into L",
         [AO | LI, RST | CNI],
     ),
     Instruction(
-        "MOVLB",
+        "LDRLB",
         "Move B into L",
         [BO | LI, RST | CNI],
     ),
     Instruction(
-        "MOVLC",
+        "LDRLC",
         "Move C into L",
         [CO | LI, RST | CNI],
     ),
     Instruction(
-        "MOVLH",
+        "LDRLH",
         "Move H into L",
         [HO | LI, RST | CNI],
     ),
 
     # MOVE INTO H
     Instruction(
-        "MOVHA",
+        "LDRHA",
         "Move A into H",
         [AO | HI, RST | CNI],
     ),
     Instruction(
-        "MOVHB",
+        "LDRHB",
         "Move B into H",
         [BO | HI, RST | CNI],
     ),
     Instruction(
-        "MOVHC",
+        "LDRHC",
         "Move C into H",
         [CO | HI, RST | CNI],
     ),
     Instruction(
-        "MOVHL",
+        "LDRHL",
         "Move L into H",
         [LO | HI, RST | CNI],
     ),
 
+    # STORE
+    Instruction(
+        "STR@A",
+        "Move A into address in adjacent two bytes",
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, AO | RI, RST | CNI],
+    ),
+    Instruction(
+        "STR@A",
+        "Move A into address in adjacent two bytes",
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, AO | RI, RST | CNI],
+    ),
+    Instruction(
+        "STR@B",
+        "Move B into address in adjacent two bytes",
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, BO | RI, RST | CNI],
+    ),
+    Instruction(
+        "STR@C",
+        "Move C into address in adjacent two bytes",
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, CO | RI, RST | CNI],
+    ),
+    Instruction(
+        "STR@H",
+        "Move H into address in adjacent two bytes",
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, HO | RI, RST | CNI],
+    ),
+    Instruction(
+        "STR@L",
+        "Move L into address in adjacent two bytes",
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, LO | RI, RST | CNI],
+    ),
 
     ### JUMP ###
     # CONDITIONAL

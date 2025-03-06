@@ -1,6 +1,6 @@
-mov a 10
-mov h a
-mov a 0
-mov a h
+ldr a 10
+ldr h a
+ldr a 0
+ldr a h
 out
 hlt

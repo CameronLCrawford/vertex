@@ -54,23 +54,31 @@ class Assembler(VtxVisitor):
             ])
             self.debug_info += instruction[1:]
 
-    def visitMove(self, ctx: VtxParser.MoveContext):
-        destination = ctx.destination().getText().upper()
+    def visitLoadRegister(self, ctx: VtxParser.LoadRegisterContext):
+        destination = ctx.REGISTER().getText().upper()
         source = ctx.source()
         if source.REGISTER():
             register = source.REGISTER().getText().upper()
-            return [instruction_names.index(f"MOV{destination}{register}")]
+            return [instruction_names.index(f"LDR{destination}{register}")]
         elif source.CONSTANT():
             constant = int(source.CONSTANT().getText())
-            return [instruction_names.index(f"MOV{destination}I"), constant]
+            return [instruction_names.index(f"LDR{destination}I"), constant]
         elif source.ADDRESS():
-            source = source.ADDRESS().getText()
             try:
-                address = int(source.ADDRESS().CONSTANT())
+                address = int(source.ADDRESS().getText()[1:])
             except ValueError:
                 raise Exception("Cannot cast address to int")
             high_byte, low_byte = convert_address_to_bytes(address)
-            return [instruction_names.index("MOVA@"), high_byte, low_byte]
+            return [instruction_names.index(f"LDR{destination}@"), high_byte, low_byte]
+
+    def visitStore(self, ctx: VtxParser.StoreContext):
+        try:
+            address = int(ctx.ADDRESS().getText()[1:])
+        except ValueError:
+            raise Exception("Cannot cast address to int")
+        high_byte, low_byte = convert_address_to_bytes(address)
+        register = ctx.REGISTER().getText().upper()
+        return [instruction_names.index(f"STR@{register}"), high_byte, low_byte]
 
     def visitPush(self, ctx: VtxParser.PushContext):
         source = ctx.source()
@@ -82,14 +90,14 @@ class Assembler(VtxVisitor):
             return [instruction_names.index("PSHI"), immediate]
         elif source.ADDRESS():
             try:
-                address = int(source.ADDRESS().CONSTANT())
+                address = int(source.ADDRESS().getText()[1:])
             except IndexError:
                 raise Exception("Cannot cast address to int")
             high_byte, low_byte = convert_address_to_bytes(address)
             return [instruction_names.index("PSH@"), high_byte, low_byte]
 
     def visitPop(self, ctx: VtxParser.PopContext):
-        destination = ctx.destination().getText().upper()
+        destination = ctx.REGISTER().getText().upper()
         return [instruction_names.index(f"POP{destination}")]
 
     def visitAdd(self, ctx: VtxParser.AddContext):
@@ -106,7 +114,12 @@ class Assembler(VtxVisitor):
             immediate = int(source.CONSTANT().getText())
             return [instruction_names.index(f"{instruction}I"), immediate]
         elif source.ADDRESS():
-            pass # TODO: implement ADD@
+            try:
+                address = int(source.ADDRESS().getText()[1:])
+            except IndexError:
+                raise Exception("Cannot cast address to int")
+            high_byte, low_byte = convert_address_to_bytes(address)
+            return [instruction_names.index("ADD@"), high_byte, low_byte]
 
     def visitSub(self, ctx: VtxParser.SubContext):
         source = ctx.source()
@@ -122,7 +135,12 @@ class Assembler(VtxVisitor):
             immediate = int(source.CONSTANT().getText())
             return [instruction_names.index(f"{instruction}I"), immediate]
         elif source.ADDRESS():
-            pass # TODO: implement SUB@
+            try:
+                address = int(source.ADDRESS().getText()[1:])
+            except IndexError:
+                raise Exception("Cannot cast address to int")
+            high_byte, low_byte = convert_address_to_bytes(address)
+            return [instruction_names.index("OR@"), high_byte, low_byte]
 
     def visitBinaryAnd(self, ctx: VtxParser.BinaryAndContext):
         source = ctx.source()
@@ -133,7 +151,12 @@ class Assembler(VtxVisitor):
             immediate = int(source.CONSTANT().getText())
             return [instruction_names.index("ANDI"), immediate]
         elif source.ADDRESS():
-            pass # TODO: implement AND@
+            try:
+                address = int(source.ADDRESS().getText()[1:])
+            except IndexError:
+                raise Exception("Cannot cast address to int")
+            high_byte, low_byte = convert_address_to_bytes(address)
+            return [instruction_names.index("AND@"), high_byte, low_byte]
 
     def visitBinaryOr(self, ctx: VtxParser.BinaryOrContext):
         source = ctx.source()
@@ -144,7 +167,12 @@ class Assembler(VtxVisitor):
             immediate = int(source.CONSTANT().getText())
             return [instruction_names.index("ORI"), immediate]
         elif source.ADDRESS():
-            pass # TODO: implement OR@
+            try:
+                address = int(source.ADDRESS().getText()[1:])
+            except IndexError:
+                raise Exception("Cannot cast address to int")
+            high_byte, low_byte = convert_address_to_bytes(address)
+            return [instruction_names.index("OR@"), high_byte, low_byte]
 
     def visitBinaryXor(self, ctx: VtxParser.BinaryXorContext):
         source = ctx.source()
@@ -155,7 +183,12 @@ class Assembler(VtxVisitor):
             immediate = int(source.CONSTANT().getText())
             return [instruction_names.index("XORI"), immediate]
         elif source.ADDRESS():
-            pass # TODO: implement XOR@
+            try:
+                address = int(source.ADDRESS().getText()[1:])
+            except IndexError:
+                raise Exception("Cannot cast address to int")
+            high_byte, low_byte = convert_address_to_bytes(address)
+            return [instruction_names.index("XOR@"), high_byte, low_byte]
 
     def visitBinaryNot(self, ctx: VtxParser.BinaryNotContext):
         return [instruction_names.index("NOT")]

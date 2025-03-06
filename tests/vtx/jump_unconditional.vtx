@@ -1,4 +1,4 @@
-mov a 10
+ldr a 10
 jmp ONE
 out
 hlt
@@ -9,7 +9,7 @@ out
 hlt
 
 THREE:
-mov a 20
+ldr a 20
 out
 hlt
 

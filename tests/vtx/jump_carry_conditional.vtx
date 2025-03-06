@@ -1,17 +1,17 @@
-mov a 255
+ldr a 255
 inc
 jmp ncf FAILED_NC_FALSE
 jmp PASSED_NC_FALSE
 FAILED_NC_FALSE:
-mov a 1
+ldr a 1
 out
 hlt
 
 PASSED_NC_FALSE:
-mov a 0
+ldr a 0
 inc
 jmp ncf PASSED_NC_TRUE
-mov a 2
+ldr a 2
 out
 hlt
 
@@ -19,19 +19,19 @@ PASSED_NC_TRUE:
 jmp cf FAILED_C_FALSE
 jmp PASSED_C_FALSE
 FAILED_C_FALSE:
-mov a 3
+ldr a 3
 out
 hlt
 
 PASSED_C_FALSE:
-mov a 255
+ldr a 255
 inc
 jmp cf PASSED_C_TRUE
-mov a 4
+ldr a 4
 out
 hlt
 
 PASSED_C_TRUE:
-mov a 20
+ldr a 20
 out
 hlt
