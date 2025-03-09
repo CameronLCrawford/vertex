@@ -77,21 +77,16 @@ SHRC    = A3 | A2 | A1 | A0
 jump_immediate = [CNI | ADI | RO | ATI, CNI | ADI | RO | CLI, ATO | CHI, RST]
 
 class Instruction():
-    name: str
-    description: str
-    microinstructions: list[int]
-    # List of three ints, where each is the scope for the respective
-    # flag -- [zero, sign, carry].
-    # A scope can be -1, 0, or 1:
-    # - If scope = -1, this instruction is present only when the respective flag is low
-    # - If scope = 0, this instruction is present irrespective of the state of the respective flag
-    # - If scope = 1, this instruction is present only when the respective flag is high
-    scopes: list[int]
-
     def __init__(self, name, description, microinstructions, scopes=[0, 0, 0]) -> None:
         self.name = name
         self.description = description
         self.microinstructions = [MAC, RO | II] + microinstructions
+        # List of three ints, where each is the scope for the respective
+        # flag -- [zero, sign, carry].
+        # A scope can be -1, 0, or 1:
+        # - If scope = -1, this instruction is present only when the respective flag is low
+        # - If scope = 0, this instruction is present irrespective of the state of the respective flag
+        # - If scope = 1, this instruction is present only when the respective flag is high
         self.scopes = scopes
 
 instructions: list[Instruction] = [

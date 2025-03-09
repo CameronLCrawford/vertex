@@ -1,0 +1,10 @@
+data foo {
+	hello: [16].
+	world: [0].
+}
+
+data bar {
+	x: <[8] ^ 3>.
+	y: <<<[foo]>>>.
+	z: [8] ^ 3 ^ 10.
+}
