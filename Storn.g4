@@ -24,11 +24,15 @@ typedVar
         ;
 
 routine
-        : 'routine' NAME '(' typedParamList ')' '->' type statements
+        : 'routine' NAME '(' typedParamList ')' '->' type localVars statements
         ;
 
 typedParamList
         : (typedVar (',' typedVar)*)?
+        ;
+
+localVars
+        : (';' typeDeclaration+)?
         ;
 
 statements
@@ -36,17 +40,12 @@ statements
         ;
 
 statement
-        : initStmt '.'
-        | setStmt '.'
+        : setStmt '.'
         | ifStmt
         | loopStmt
         | breakStmt '.'
         | outputStmt '.'
         | returnStmt '.'
-        ;
-
-initStmt
-        : 'init' typedVar 
         ;
 
 setStmt
