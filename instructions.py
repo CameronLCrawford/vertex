@@ -435,6 +435,33 @@ instructions: list[Instruction] = [
         [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | LI, RST | CNI],
     ),
 
+    # M MOVES
+    Instruction(
+        "LDRAM",
+        "Move value at address in M into A",
+        [HO | AHI, LO | ALI, RO | AI, RST | CNI],
+    ),
+    Instruction(
+        "LDRBM",
+        "Move value at address in M into B",
+        [HO | AHI, LO | ALI, RO | BI, RST | CNI],
+    ),
+    Instruction(
+        "LDRCM",
+        "Move value at address in M into C",
+        [HO | AHI, LO | ALI, RO | CI, RST | CNI],
+    ),
+    Instruction(
+        "LDRHM",
+        "Move value at address in M into H",
+        [HO | AHI, LO | ALI, RO | HI, RST | CNI],
+    ),
+    Instruction(
+        "LDRLM",
+        "Move value at address in M into H",
+        [HO | AHI, LO | ALI, RO | LI, RST | CNI],
+    ),
+
     # REGISTER-REGISTER MOVES
 
     # MOVE INTO A
@@ -457,6 +484,16 @@ instructions: list[Instruction] = [
         "LDRAH",
         "Move H into A",
         [HO | AI, RST | CNI],
+    ),
+    Instruction(
+        "LDRABPL",
+        "Move base pointer low into A",
+        [BLO | AI, RST | CNI],
+    ),
+    Instruction(
+        "LDRABPH",
+        "Move base pointer high into A",
+        [BHO | AI, RST | CNI],
     ),
 
     # MOVE INTO B
@@ -547,12 +584,19 @@ instructions: list[Instruction] = [
         [LO | HI, RST | CNI],
     ),
 
-    # STORE
+    # MOVE INTO BP
     Instruction(
-        "STR@A",
-        "Move A into address in adjacent two bytes",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, AO | RI, RST | CNI],
+        "LDRBPLA",
+        "Move A into base pointer low",
+        [AO | BLI, RST | CNI],
     ),
+    Instruction(
+        "LDRBPHA",
+        "Move A into base pointer high",
+        [AO | BHI, RST | CNI],
+    ),
+
+    # STORE IN ADDRESS
     Instruction(
         "STR@A",
         "Move A into address in adjacent two bytes",
@@ -577,6 +621,33 @@ instructions: list[Instruction] = [
         "STR@L",
         "Move L into address in adjacent two bytes",
         [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, LO | RI, RST | CNI],
+    ),
+
+    # STORE IN M
+    Instruction(
+        "STRMA",
+        "Move A into address in M",
+        [HO | AHI, LO | ALI, AO | RO, RST | CNI],
+    ),
+    Instruction(
+        "STRMB",
+        "Move B into address in M",
+        [HO | AHI, LO | ALI, BO | RO, RST | CNI],
+    ),
+    Instruction(
+        "STRMC",
+        "Move C into address in M",
+        [HO | AHI, LO | ALI, CO | RO, RST | CNI],
+    ),
+    Instruction(
+        "STRMH",
+        "Move H into address in M",
+        [HO | AHI, LO | ALI, HO | RO, RST | CNI],
+    ),
+    Instruction(
+        "STRML",
+        "Move L into address in M",
+        [HO | AHI, LO | ALI, LO | RO, RST | CNI],
     ),
 
     ### JUMP ###

@@ -38,6 +38,7 @@ source
         : REGISTER
         | CONSTANT
         | ADDRESS
+        | M
         ;
 
 loadRegister
@@ -45,7 +46,7 @@ loadRegister
         ;
 
 store
-        : 'str' ADDRESS REGISTER
+        : 'str' (ADDRESS | M) REGISTER
         ;
 
 push
@@ -124,6 +125,12 @@ REGISTER
         | 'c'
         | 'h'
         | 'l'
+        | 'bph'
+        | 'bpl'
+        ;
+
+M
+        : 'm'
         ;
 
 ADDRESS

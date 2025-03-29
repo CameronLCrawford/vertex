@@ -72,13 +72,16 @@ class Assembler(VtxVisitor):
             return [instruction_names.index(f"LDR{destination}@"), high_byte, low_byte]
 
     def visitStore(self, ctx: VtxParser.StoreContext):
-        try:
-            address = int(ctx.ADDRESS().getText()[1:])
-        except ValueError:
-            raise Exception("Cannot cast address to int")
-        high_byte, low_byte = convert_address_to_bytes(address)
         register = ctx.REGISTER().getText().upper()
-        return [instruction_names.index(f"STR@{register}"), high_byte, low_byte]
+        if ctx.ADDRESS():
+            try:
+                address = int(ctx.ADDRESS().getText()[1:])
+            except ValueError:
+                raise Exception("Cannot cast address to int")
+            high_byte, low_byte = convert_address_to_bytes(address)
+            return [instruction_names.index(f"STR@{register}"), high_byte, low_byte]
+        elif ctx.M():
+            return [instruction_names.index(f"STRM{register}")]
 
     def visitPush(self, ctx: VtxParser.PushContext):
         source = ctx.source()

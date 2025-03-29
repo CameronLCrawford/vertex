@@ -53,10 +53,24 @@ setStmt
         ;
 
 lvalue
-        : NAME
-        | '$' lvalue
-        | lvalue '/' expression
-        | lvalue '@' expression
+        : indexLvalue
+        ;
+
+indexLvalue
+        : projectionLvalue ('@' expression)*
+        ;
+
+projectionLvalue
+        : referenceLvalue ('/' NAME)*
+        ;
+
+referenceLvalue
+        : DEREFERENCE? primaryLvalue
+        ;
+
+primaryLvalue
+        : '(' lvalue ')'
+        | NAME
         ;
 
 ifStmt
@@ -84,7 +98,7 @@ expression
         ;
 
 logicalExpr
-        : comparativeExpr (('+' | '&') comparativeExpr)* 
+        : comparativeExpr (('|' | '&') comparativeExpr)*
         ;
 
 comparativeExpr
@@ -148,6 +162,10 @@ NAME
 
 CONSTANT
         : [0-9]+
+        ;
+
+DEREFERENCE
+        : '$'
         ;
 
 // Whitespace and comments
