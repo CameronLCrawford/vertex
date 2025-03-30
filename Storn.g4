@@ -98,15 +98,32 @@ expression
         ;
 
 logicalExpr
-        : comparativeExpr (('|' | '&') comparativeExpr)*
+        : comparativeExpr (logicalOp comparativeExpr)*
+        ;
+
+logicalOp
+        : OR | AND
         ;
 
 comparativeExpr
-        : additiveExpr (comparativeOp additiveExpr)* 
+        : additiveExpr (comparativeOp additiveExpr)*
+        ;
+
+comparativeOp
+        : EQ
+        | LT
+        | GT
+        | LEQ
+        | GEQ
         ;
 
 additiveExpr
-        : multiplicativeExpr (('+:' CONSTANT | '-:' CONSTANT) multiplicativeExpr)* 
+        : multiplicativeExpr (additiveOp multiplicativeExpr)*
+        ;
+
+additiveOp
+        : PLUS
+        | MINUS
         ;
 
 multiplicativeExpr
@@ -114,38 +131,22 @@ multiplicativeExpr
         ;
 
 unaryExpr
-        : ('-' | '~') unaryExpr
-        | primaryExpr
+        : (MINUS | NOT)? primaryExpr
         ;
 
 primaryExpr
         : '(' expression ')'
         | call
-        | arrayIndex
-        | refValue
         | lvalue
-        | NAME
         | CONSTANT
         ;
 
-comparativeOp
-        : '=' | '<' | '>' | '<=' | '>='
-        ;
-
 call
-        : '!' NAME '(' callArgs ')'
+        : '!' NAME '(' parameters ')'
         ;
 
-callArgs
+parameters
         : (expression (',' expression)*)?
-        ;
-
-arrayIndex
-        : NAME '@' expression
-        ;
-
-refValue
-        : '$' NAME
         ;
 
 type
@@ -166,6 +167,46 @@ CONSTANT
 
 DEREFERENCE
         : '$'
+        ;
+
+OR
+        : '|'
+        ;
+
+AND
+        : '&'
+        ;
+
+EQ
+        : '=='
+        ;
+
+LT
+        : '<'
+        ;
+
+GT
+        : '>'
+        ;
+
+LEQ
+        : '<='
+        ;
+
+GEQ
+        : '>='
+        ;
+
+PLUS
+        : '+'
+        ;
+
+MINUS
+        : '-'
+        ;
+
+NOT
+        : '~'
         ;
 
 // Whitespace and comments
