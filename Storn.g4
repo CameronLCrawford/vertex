@@ -49,7 +49,7 @@ statement
         ;
 
 setStmt
-        : 'set' lvalue '=' expression 
+        : 'set' lvalue '=' expression
         ;
 
 lvalue
@@ -74,7 +74,7 @@ primaryLvalue
         ;
 
 ifStmt
-        : 'if' expression statements 
+        : 'if' expression statements
         ;
 
 loopStmt

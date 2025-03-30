@@ -134,6 +134,7 @@ class CodeGenerator(StornVisitor):
         self.routine_table: Dict[str, Routine] = {}
         self.scope: Dict[str, Type] = {}
         self.label_count = 0
+        self.loop_label_stack = []
 
     def visitData(self, ctx: StornParser.DataContext):
         name = ctx.NAME().getText()
@@ -212,6 +213,12 @@ class CodeGenerator(StornVisitor):
             size += type_.size
 
         return routine_scope, size
+
+    def visitStatements(self, ctx: StornParser.StatementsContext):
+        statements = ctx.statement()
+
+        for statement in statements:
+            self.visit(statement)
 
     def visitSetStmt(self, ctx: StornParser.SetStmtContext):
         lvalue = ctx.lvalue()
@@ -386,16 +393,57 @@ class CodeGenerator(StornVisitor):
         return variable
 
     def visitIfStmt(self, ctx: StornParser.IfStmtContext):
-        return super().visitIfStmt(ctx)
+        expression = self.visitExpression(ctx.expression())
+        if not (isinstance(expression, BaseType) and expression.size == 8):
+            raise Exception("If condition expression evaluates to non [8] type")
+
+        self.instructions += [
+            "pop a",
+            f"jmp zf L{self.label_count}"
+        ]
+
+        self.visitStatements(ctx.statements())
+
+        self.instructions += [
+            f"L{self.label_count}:",
+        ]
+        self.label_count += 1
 
     def visitLoopStmt(self, ctx: StornParser.LoopStmtContext):
-        return super().visitLoopStmt(ctx)
+        start_label = self.label_count
+        end_label = self.label_count + 1
+        self.loop_label_stack.append(start_label)
+        self.label_count += 2
+
+        self.instructions += [
+            f"L{start_label}:",
+        ]
+
+        self.visitStatements(ctx.statements())
+
+        self.instructions += [
+            f"jmp L{start_label}",
+            f"L{end_label}:",
+        ]
+
+        self.loop_label_stack.pop()
 
     def visitBreakStmt(self, ctx: StornParser.BreakStmtContext):
-        return super().visitBreakStmt(ctx)
+        # Start label is on top of loop label stack
+        # End label is start label + 1
+        self.instructions += [
+            f"jmp L{self.loop_label_stack[-1] + 1}"
+        ]
 
     def visitOutputStmt(self, ctx: StornParser.OutputStmtContext):
-        return super().visitOutputStmt(ctx)
+        expression = self.visitExpression(ctx.expression())
+        if not (isinstance(expression, BaseType) and expression.size == 8):
+            raise Exception("If condition expression evaluates to non [8] type")
+
+        self.instructions += [
+            "pop a",
+            "out",
+        ]
 
     def visitReturnStmt(self, ctx: StornParser.ReturnStmtContext):
         return super().visitReturnStmt(ctx)
@@ -442,7 +490,7 @@ class CodeGenerator(StornVisitor):
 
         return expression
 
-    def visitComparativeExpr(self, ctx: StornParser.ComparativeExprContext):
+    def visitComparativeExpr(self, ctx: StornParser.ComparativeExprContext) -> Type:
         expression = self.visitAdditiveExpr(ctx.additiveExpr(0))
 
         additive_count = (ctx.getChildCount() - 1) // 2
@@ -511,7 +559,7 @@ class CodeGenerator(StornVisitor):
 
         return expression
 
-    def visitAdditiveExpr(self, ctx: StornParser.AdditiveExprContext):
+    def visitAdditiveExpr(self, ctx: StornParser.AdditiveExprContext) -> Type:
         expression = self.visitMultiplicativeExpr(ctx.multiplicativeExpr(0))
 
         multiplicative_count = (ctx.getChildCount() - 1) // 2
@@ -551,7 +599,7 @@ class CodeGenerator(StornVisitor):
 
         return expression
 
-    def visitMultiplicativeExpr(self, ctx: StornParser.MultiplicativeExprContext):
+    def visitMultiplicativeExpr(self, ctx: StornParser.MultiplicativeExprContext) -> Type:
         expression = self.visitUnaryExpr(ctx.unaryExpr(0))
 
         unary_count = (ctx.getChildCount() - 1) // 2
@@ -593,7 +641,7 @@ class CodeGenerator(StornVisitor):
 
         return expression
 
-    def visitUnaryExpr(self, ctx: StornParser.UnaryExprContext):
+    def visitUnaryExpr(self, ctx: StornParser.UnaryExprContext) -> Type:
         expression = self.visitPrimaryExpr(ctx.primaryExpr())
 
         if ctx.MINUS() or ctx.NOT():
