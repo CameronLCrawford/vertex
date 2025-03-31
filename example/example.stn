@@ -38,7 +38,7 @@ routine data_example () -> [8];
         set b/z = 9.
         set vecs @ 0 = a.
         set vecs @ 1 = b.
-        set result = vecs @ 0 / x +:8 vecs @ 1 / y.
+        set result = (vecs @ 0) / x + (vecs @ 1) / y.
         return result.
 }
 
@@ -48,7 +48,7 @@ routine control_example () -> [0];
         set i = 0.
         loop {
                 output i.
-                set i = i +:8 1.
+                set i = i + 1.
                 if i = 10 {
                         break.
                 }
@@ -63,7 +63,7 @@ routine factorial (n: [8]) -> [8] {
         if n = 1 {
                 return 1.
         }
-        return n * !factorial(n -:8 1).
+        return n * !factorial(n - 1).
 }
 
 routine entry () -> [0];

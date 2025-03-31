@@ -102,7 +102,8 @@ logicalExpr
         ;
 
 logicalOp
-        : OR | AND
+        : OR
+        | AND
         ;
 
 comparativeExpr
@@ -178,7 +179,7 @@ AND
         ;
 
 EQ
-        : '=='
+        : '='
         ;
 
 LT

@@ -132,7 +132,7 @@ class CodeGenerator(StornVisitor):
         self.instructions: List[str] = []
         self.data_table: Dict[str, DataType] = {}
         self.routine_table: Dict[str, Routine] = {}
-        self.scope: Dict[str, Type] = {}
+        self.current_routine: Routine = Routine({}, Type(), {})
         self.label_count = 0
         self.loop_label_stack = []
 
@@ -162,56 +162,84 @@ class CodeGenerator(StornVisitor):
     # Add the routine to the routine table before
     # compiling statements to enable recursion
     def visitRoutine(self, ctx: StornParser.RoutineContext):
+        parameters = self.visitTypedParamList(ctx.typedParamList())
+        return_type = self.visitType(ctx.type_())
+        routine_scope, size = self.visitLocalVars(ctx.localVars())
         name = ctx.NAME().getText()
-        param_list = ctx.typedParamList().typedVar()
-        return_type = ctx.type_()
-        variables = ctx.localVars()
-        statements = ctx.statements().statement()
-
-        parameters: Dict[str, Type] = {}
-        for parameter in param_list:
-            name, type_ = self.visitTypedVar(parameter)
-            parameters[name] = type_
-
-        routine_scope, size = self.visitLocalVars(variables)
-        self.scope = routine_scope.copy()
-
+        if name in self.routine_table:
+            raise Exception("Redeclaring routine")
         routine = Routine(parameters, return_type, routine_scope)
         self.routine_table[name] = routine
+        self.current_routine = routine
 
         # Prologue
+        size_low = size & 0b11111111
+        size_high = size >> 8
         self.instructions += [
             f"{name.upper()}:",
-            # "psh bp",
-            # "mov bp sp",
-            # f"sub sp {size}",
+            # NOTE: push state here
+            "psh bph",
+            "psh bpl",
+            "ldr bph sph",
+            "ldr bpl spl",
+            "ldr a spl",
+            f"sub {size_low}",
+            "ldr spl a",
+            "ldr a sph",
+            f"sub cc {size_high}",
+            "ldr sph a",
         ]
 
-        # Body
-        for statement in statements:
-            self.visit(statement)
+        self.visitStatements(ctx.statements())
 
-        # Epilogue
-        self.instructions += [
-            # "mov bp sp",
-            # "pop bp",
-            # "pop c",
-        ]
+    def visitTypedParamList(self, ctx: StornParser.TypedParamListContext) -> Dict[str, Type]:
+        parameters: Dict[str, Type] = {}
+
+        # Tracks the cumulative offset from BP.
+        # Starts at 3 since BP exists on the stack as BPH and BPL and return is two bytes:
+        # | 0x0000 |
+        # |  ....  |
+        # | LOCAL1 | <- SP
+        # | LOCAL0 | <- local 0 offset
+        # | BPL    | <- BP points here
+        # | BPH    |
+        # | RETURN | <- return low
+        # | RETURN | <- return high; cumulative offset starts here
+        # | PARAM0 |
+        # | PARAM0 |
+        # | PARAM0 | <- param 0 offset
+        # | PARAM1 | <- param 1 offset
+        # |  ....  |
+        # | 0xFFFF |
+        cumulative_offset = 3
+        for variable in ctx.typedVar():
+            name, type_ = self.visitTypedVar(variable)
+            type_.calculate_size(self.data_table)
+            cumulative_offset += type_.size
+            type_.calculate_offset(cumulative_offset)
+            parameters[name] = type_
+
+        return parameters
 
     def visitLocalVars(self, ctx: StornParser.LocalVarsContext) -> Tuple[Dict[str, Type], int]:
         routine_scope: Dict[str, Type] = {}
-        size = 0
         variables = ctx.typeDeclaration()
         if not variables:
             return {}, 0
 
-        for variable in variables:
+        # Note that cumulative offset is 1 here
+        # in spite of there being no bytes between BP and the local vars.
+        # This is because the pointer points to where the next variable
+        # will be instead of where the base of it will end.
+        cumulative_offset = 1
+        for variable in reversed(variables):
             name, type_ = self.visitTypeDeclaration(variable)
             type_.calculate_size(self.data_table)
-            type_.calculate_offset(size)
+            type_.calculate_offset(cumulative_offset)
             routine_scope[name] = type_
-            size += type_.size
+            cumulative_offset += type_.size
 
+        size = cumulative_offset - 1
         return routine_scope, size
 
     def visitStatements(self, ctx: StornParser.StatementsContext):
@@ -287,6 +315,9 @@ class CodeGenerator(StornVisitor):
             self.label_count += 1
 
             lvalue = lvalue.type_
+
+            if isinstance(lvalue, UnresolvedType):
+                lvalue = self.data_table[lvalue.name].copy()
 
         return lvalue
 
@@ -365,9 +396,15 @@ class CodeGenerator(StornVisitor):
         if ctx.lvalue():
             return self.visitLvalue(ctx.lvalue())
 
-        try:
-            variable = self.scope[ctx.NAME().getText()]
-        except IndexError:
+        # Whether to add or subtract from BP to get variable address
+        offset_operation = "add"
+        variable_name = ctx.NAME().getText()
+        if variable_name in self.current_routine.scope:
+            variable = self.current_routine.scope[variable_name]
+            offset_operation = "sub"
+        elif variable_name in self.current_routine.parameters:
+            variable = self.current_routine.parameters[variable_name]
+        else:
             raise Exception("Reference to unknown variable")
 
         if isinstance(variable, UnresolvedType):
@@ -380,13 +417,13 @@ class CodeGenerator(StornVisitor):
         offset_high = offset >> 8
 
         # Compute address of variable by its offset from BP
-        # HL := BP - offset
+        # HL := BP +/- offset
         self.instructions += [
             "ldr a bpl",
-            f"sub {offset_low}",
+            f"{offset_operation} {offset_low}",
             "ldr l a",
             "ldr a bph",
-            f"sub cc {offset_high}",
+            f"{offset_operation} cc {offset_high}",
             "ldr h a",
         ]
 
@@ -394,7 +431,7 @@ class CodeGenerator(StornVisitor):
 
     def visitIfStmt(self, ctx: StornParser.IfStmtContext):
         expression = self.visitExpression(ctx.expression())
-        if not (isinstance(expression, BaseType) and expression.size == 8):
+        if not (isinstance(expression, BaseType) and expression.width == 8):
             raise Exception("If condition expression evaluates to non [8] type")
 
         self.instructions += [
@@ -437,8 +474,8 @@ class CodeGenerator(StornVisitor):
 
     def visitOutputStmt(self, ctx: StornParser.OutputStmtContext):
         expression = self.visitExpression(ctx.expression())
-        if not (isinstance(expression, BaseType) and expression.size == 8):
-            raise Exception("If condition expression evaluates to non [8] type")
+        if not (isinstance(expression, BaseType) and expression.width == 8):
+            raise Exception("Out expression evaluates to non [8] type")
 
         self.instructions += [
             "pop a",
@@ -446,7 +483,21 @@ class CodeGenerator(StornVisitor):
         ]
 
     def visitReturnStmt(self, ctx: StornParser.ReturnStmtContext):
-        return super().visitReturnStmt(ctx)
+        if ctx.expression():
+            expression_type = self.visitExpression(ctx.expression())
+            if expression_type != self.current_routine.return_type:
+                raise Exception("Return type doesn't matched expectation for routine")
+
+        # Epilogue: mov sp bp, pop bp, pop m (return), jmp m
+        self.instructions += [
+            "ldr sph bph",
+            "ldr shl bpl",
+            "pop bpl",
+            "pop bph",
+            "pop l",
+            "pop h",
+            "jmp m",
+        ]
 
     def visitExpression(self, ctx: StornParser.ExpressionContext) -> Type:
         return self.visitLogicalExpr(ctx.logicalExpr())
@@ -503,7 +554,7 @@ class CodeGenerator(StornVisitor):
             if expression.width != next_expression.width:
                 raise Exception("Attemping to perform comparative operation on expressions of differing width")
 
-            operation = ctx.comparativeOp()
+            operation = ctx.comparativeOp(i)
             width = expression.width
 
             # Between the 10 cases (5 operations; 2 'widths'), only 2
@@ -566,13 +617,13 @@ class CodeGenerator(StornVisitor):
         for i in range(multiplicative_count):
             if not isinstance(expression, BaseType):
                 raise Exception("Attemping to perform additive operation on non numerical type")
-            next_expression = self.visitAdditiveExpr(ctx.multiplicativeExpr(i + 1))
+            next_expression = self.visitMultiplicativeExpr(ctx.multiplicativeExpr(i + 1))
             if not isinstance(next_expression, BaseType):
                 raise Exception("Attemping to perform additive operation on non numerical type")
             if expression.width != next_expression.width:
                 raise Exception("Attemping to perform additive operation on expressions of differing width")
 
-            operation = ctx.additiveOp()
+            operation = ctx.additiveOp(i)
             width = expression.width
             op_instruction = "add b" if operation.PLUS() else "sub b"
             op_cc_instruction = "add cc b" if operation.PLUS() else "sub cc b"
@@ -606,7 +657,7 @@ class CodeGenerator(StornVisitor):
         for i in range(unary_count):
             if not (isinstance(expression, BaseType) and expression.width == 8):
                 raise Exception("Attempting to multiply expression not of type [8]")
-            next_expression = ctx.unaryExpr(i)
+            next_expression = self.visitUnaryExpr(ctx.unaryExpr(i))
             if not (isinstance(next_expression, BaseType) and next_expression.width == 8):
                 raise Exception("Attempting to multiply expression not of type [8]")
 
@@ -693,17 +744,25 @@ class CodeGenerator(StornVisitor):
         if ctx.expression():
             return self.visitExpression(ctx.expression())
         elif ctx.call():
-            routine_name = ctx.call().NAME()
-            try:
+            routine_name = ctx.call().NAME().getText()
+            if routine_name in self.routine_table:
                 routine = self.routine_table[routine_name]
-            except IndexError:
+            else:
                 raise Exception("Reference to unknown routine")
 
-            parameters = self.visitParameters(ctx.call().parameters())
-            if parameters != routine.parameters:
-                raise Exception("Invalid parameters for routine")
+            self.visitParameters(ctx.call().parameters())
+            parameters = ctx.call().parameters().expression()
+            expected_parameter_types = self.routine_table[routine_name].parameters.values()
 
-            # TODO: call routine
+            for parameter, expected_parameter_type in zip(reversed(parameters), reversed(expected_parameter_types)):
+                parameter_type = self.visitExpression(parameter)
+                if parameter_type != expected_parameter_type:
+                    raise Exception("Parameter expression is an inconsistent type with routine expectation")
+
+            self.instructions += [
+                "psh ah",
+                "psh al",
+            ]
 
             return routine.return_type
         elif ctx.lvalue():
