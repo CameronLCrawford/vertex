@@ -1,0 +1,4 @@
+- program: succ
+  expected_output: "OUTPUT: 1"
+- program: identity
+  expected_output: "OUTPUT: 0"

@@ -10,38 +10,38 @@
 ) = (2**i for i in range(27))
 
 # Register in codes
-AI  =   I0
-ATI =   I1
-BI  =   I1 | I0
-CI  =   I2
-HI  =   I2 | I0
-LI  =   I2 | I1
-CHI =   I2 | I1 | I0
-CLI =   I3
-AHI =   I3 | I0
-ALI =   I3 | I1
-BHI =   I3 | I1 | I0
-BLI =   I3 | I2
-SHI =   I3 | I2 | I0
-SLI =   I3 | I2 | I1
-II  =   I3 | I2 | I1 | I0
+AI      =   I0
+ATI     =   I1
+BI      =   I1 | I0
+CI      =   I2
+HI      =   I2 | I0
+LI      =   I2 | I1
+CNHI    =   I2 | I1 | I0
+CNLI    =   I3
+AHI     =   I3 | I0
+ALI     =   I3 | I1
+BPHI    =   I3 | I1 | I0
+BPLI    =   I3 | I2
+SPHI    =   I3 | I2 | I0
+SPLI    =   I3 | I2 | I1
+II      =   I3 | I2 | I1 | I0
 
 # Register out codes
-AO  =   O0
-ATO =   O1
-BO  =   O1 | O0
-CO  =   O2
-HO  =   O2 | O0
-LO  =   O2 | O1
-CHO =   O2 | O1 | O0
-CLO =   O3
-AHO =   O3 | O0
-ALO =   O3 | O1
-BHO =   O3 | O1 | O0
-BLO =   O3 | O2
-SHO =   O3 | O2 | O0
-SLO =   O3 | O2 | O1
-IO  =   O3 | O2 | O1 | O0
+AO      =   O0
+ATO     =   O1
+BO      =   O1 | O0
+CO      =   O2
+HO      =   O2 | O0
+LO      =   O2 | O1
+CNHO    =   O2 | O1 | O0
+CNLO    =   O3
+AHO     =   O3 | O0
+ALO     =   O3 | O1
+BPHO    =   O3 | O1 | O0
+BPLO    =   O3 | O2
+SPHO    =   O3 | O2 | O0
+SPLO    =   O3 | O2 | O1
+IO      =   O3 | O2 | O1 | O0
 
 # ALU codes
 ADD     = A0
@@ -74,12 +74,12 @@ SHRC    = A3 | A2 | A1 | A0
 # By taking the binary disjunction of control bits in each microtick,
 # complex control operations can be composed.
 # The `instructions` object is a list of all instructions
-jump_immediate = [CNI | ADI | RO | ATI, CNI | ADI | RO | CLI, ATO | CHI, RST]
+jump_immediate = [CNI | ADI | RO | ATI, CNI | ADI | RO | CNLI, ATO | CNHI, RST]
+jump_m = [LO | CNLI, HO | CNHI, RST]
 
 class Instruction():
-    def __init__(self, name, description, microinstructions, scopes=[0, 0, 0]) -> None:
+    def __init__(self, name, microinstructions, scopes=[0, 0, 0]):
         self.name = name
-        self.description = description
         self.microinstructions = [MAC, RO | II] + microinstructions
         # List of three ints, where each is the scope for the respective
         # flag -- [zero, sign, carry].
@@ -91,600 +91,204 @@ class Instruction():
 
 instructions: list[Instruction] = [
     ### ALU ###
-    # ADD
-    Instruction(
-        "ADDA",
-        "Add A to A",
-        [AO | ATI, ADD | AI, RST | CNI],
-    ),
-    Instruction(
-        "ADDB",
-        "Add B to A",
-        [BO | ATI, ADD | AI, RST | CNI],
-    ),
-    Instruction(
-        "ADDC",
-        "Add C to A",
-        [CO | ATI, ADD | AI, RST | CNI],
-    ),
-    Instruction(
-        "ADDH",
-        "Add H to A",
-        [HO | ATI, ADD | AI, RST | CNI],
-    ),
-    Instruction(
-        "ADDL",
-        "Add L to A",
-        [LO | ATI, ADD | AI, RST | CNI],
-    ),
-    Instruction(
-        "ADDI",
-        "Add immediate to A",
-        [CNI | ADI | RO | ATI, ADD | AI, RST | CNI],
-    ),
-    Instruction(
-        "ADD@",
-        "Add value at address in adjacent two bytes to A",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | ATI, ADD | AI]
-    ),
 
-    # SUBTRACT
-    Instruction(
-        "SUBB",
-        "Subtract B from A",
-        [BO | ATI, SUB | AI, RST | CNI],
-    ),
-    Instruction(
-        "SUBC",
-        "Subtract C from A",
-        [CO | ATI, SUB | AI, RST | CNI],
-    ),
-    Instruction(
-        "SUBH",
-        "Subtract H from A",
-        [HO | ATI, SUB | AI, RST | CNI],
-    ),
-    Instruction(
-        "SUBL",
-        "Subtact L from A",
-        [LO | ATI, SUB | AI, RST | CNI],
-    ),
-    Instruction(
-        "SUBI",
-        "Subtract immediate from A",
-        [CNI | ADI | RO | ATI, SUB | AI, RST | CNI],
-    ),
-    Instruction(
-        "SUB@",
-        "Subtract value at address in adjacent two bytes from A",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | ATI, SUB | AI]
-    ),
+    # REGISTER
+    *[
+        Instruction(
+            f"{operation}{source}",
+            [eval(f"{source}O") | ATI, eval(operation) | AI, RST | CNI],
+        )
+        for source in ["B", "C", "H", "L"]
+        for operation in ["ADD", "ADDC", "SUB", "SUBC", "AND", "OR", "XOR"]
+    ],
 
-    # AND
-    Instruction(
-        "ANDB",
-        "And B with A",
-        [BO | ATI, AND | AI, RST | CNI]
-    ),
-    Instruction(
-        "ANDC",
-        "And C with A",
-        [CO | ATI, AND | AI, RST | CNI]
-    ),
-    Instruction(
-        "ANDH",
-        "And H with A",
-        [HO | ATI, AND | AI, RST | CNI]
-    ),
-    Instruction(
-        "ANDL",
-        "And L with A",
-        [LO | ATI, AND | AI, RST | CNI]
-    ),
-    Instruction(
-        "ANDI",
-        "And immediate with A",
-        [CNI | ADI | RO | ATI, AND | AI, RST | CNI]
-    ),
-    Instruction(
-        "AND@",
-        "And value at address in adjacent two bytes with A",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | ATI, AND | AI]
-    ),
+    # IMMEDIATE
+    *[
+        Instruction(
+            f"{operation}I",
+            [CNI | ADI | RO | ATI, eval(operation) | AI, RST | CNI],
+        )
+        for operation in ["ADD", "ADDC", "SUB", "SUBC", "AND", "OR", "XOR"]
+    ],
 
-    # OR
-    Instruction(
-        "ORB",
-        "Or B with A",
-        [BO | ATI, OR | AI, RST | CNI]
-    ),
-    Instruction(
-        "ORC",
-        "Or C with A",
-        [CO | ATI, OR | AI, RST | CNI]
-    ),
-    Instruction(
-        "ORH",
-        "Or H with A",
-        [HO | ATI, OR | AI, RST | CNI]
-    ),
-    Instruction(
-        "ORL",
-        "Or L with A",
-        [LO | ATI, OR | AI, RST | CNI]
-    ),
-    Instruction(
-        "ORI",
-        "Or immediate with A",
-        [CNI | ADI | RO | ATI, OR | AI, RST | CNI]
-    ),
-    Instruction(
-        "OR@",
-        "Or value at address in adjacent two bytes with A",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | ATI, OR | AI]
-    ),
+    # @
+    *[
+        Instruction(
+            f"{operation}@",
+            [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | ATI, eval(operation) | AI]
+        )
+        for operation in ["ADD", "SUB", "AND", "OR", "XOR"]
+    ],
 
-    # XOR
-    Instruction(
-        "XORB",
-        "Xor B with A",
-        [BO | ATI, XOR | AI, RST | CNI]
-    ),
-    Instruction(
-        "XORC",
-        "Xor C with A",
-        [CO | ATI, XOR | AI, RST | CNI]
-    ),
-    Instruction(
-        "XORH",
-        "Xor H with A",
-        [HO | ATI, XOR | AI, RST | CNI]
-    ),
-    Instruction(
-        "XORL",
-        "Xor L with A",
-        [LO | ATI, XOR | AI, RST | CNI]
-    ),
-    Instruction(
-        "XORI",
-        "Xor immediate with A",
-        [CNI | ADI | RO | ATI, XOR | AI, RST | CNI]
-    ),
-    Instruction(
-        "XOR@",
-        "Xor value at address in adjacent two bytes with A",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | ATI, XOR | AI]
-    ),
-
-    # NOT
-    Instruction(
-        "NOT",
-        "Logical negate A",
-        [NOT | AI, RST | CNI]
-    ),
-
-    # INCREMENT
-    Instruction(
-        "INC",
-        "Increment register A",
-        [INC | AI, RST | CNI],
-    ),
-
-    # DECREMENT
-    Instruction(
-        "DEC",
-        "Decrement register A",
-        [DEC | AI, RST | CNI],
-    ),
-
-    # SHIFT
-    Instruction(
-        "SHL",
-        "Shift A left",
-        [SHL | AI, RST | CNI],
-    ),
-    Instruction(
-        "SHR",
-        "Shift A right",
-        [SHR | AI, RST | CNI],
-    ),
-
-    # ADD (CARRY CONDITIONAL)
-    Instruction(
-        "ADDCA",
-        "Add A to A (carry conditional)",
-        [AO | ATI, ADDC | AI, RST | CNI],
-    ),
-    Instruction(
-        "ADDCB",
-        "Add B to A (carry conditional)",
-        [BO | ATI, ADDC | AI, RST | CNI],
-    ),
-    Instruction(
-        "ADDCC",
-        "Add C to A (carry conditional)",
-        [CO | ATI, ADDC | AI, RST | CNI],
-    ),
-    Instruction(
-        "ADDCH",
-        "Add H to A (carry conditional)",
-        [HO | ATI, ADDC | AI, RST | CNI],
-    ),
-    Instruction(
-        "ADDCL",
-        "Add L to A (carry conditional)",
-        [LO | ATI, ADDC | AI, RST | CNI],
-    ),
-    Instruction(
-        "ADDCI",
-        "Add immediate to A (carry conditional)",
-        [CNI | ADI | RO | ATI, ADDC | AI, RST | CNI],
-    ),
-    Instruction(
-        "ADDC@",
-        "Add value at address in adjacent two bytes to A (carry conditional)",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | ATI, ADDC | AI]
-    ),
-
-    # SUBTRACT (CARRY CONDITIONAL)
-    Instruction(
-        "SUBCB",
-        "Subtract B from A (carry conditional)",
-        [BO | ATI, SUBC | AI, RST | CNI],
-    ),
-    Instruction(
-        "SUBCC",
-        "Subtract C from A (carry conditional)",
-        [CO | ATI, SUBC | AI, RST | CNI],
-    ),
-    Instruction(
-        "SUBCH",
-        "Subtract H from A (carry conditional)",
-        [HO | ATI, SUBC | AI, RST | CNI],
-    ),
-    Instruction(
-        "ADDCL",
-        "Subtract L from A (carry conditional)",
-        [LO | ATI, SUBC | AI, RST | CNI],
-    ),
-    Instruction(
-        "SUBCI",
-        "Subtract immediate from A (carry conditional)",
-        [CNI | ADI | RO | ATI, SUBC | AI, RST | CNI],
-    ),
-    Instruction(
-        "SUBC@",
-        "Subtract value at address in adjacent two bytes from A (carry conditional)",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | ATI, SUBC | AI]
-    ),
-
-    # INCREMENT (CARRY CONDITIONAL)
-    Instruction(
-        "INCC",
-        "Increment A (carry conditional)",
-        [INCC | AI, RST | CNI],
-    ),
-
-    # DECREMENT (CARRY CONDITIONAL)
-    Instruction(
-        "DECC",
-        "Decrement A (carry conditional)",
-        [DECC | AI, RST | CNI],
-    ),
-
-    # SHIFT RIGHT (CARRY CONDITIONAL)
-    Instruction(
-        "SHRC",
-        "Shift A right (carry conditional)",
-        [SHRC | AI, RST | CNI],
-    ),
+    # UNARY
+    *[
+        Instruction(
+            operation,
+            [eval(operation) | AI, RST | CNI],
+        )
+        for operation in ["NOT", "INC", "INCC", "DEC", "DECC", "SHL", "SHR", "SHRC"]
+    ],
 
     ### DATA ###
 
     # IMMEDIATE MOVES
-    Instruction(
-        "LDRAI",
-        "Move immediate into A",
-        [CNI | ADI | RO | AI, RST | CNI],
-    ),
-    Instruction(
-        "LDRBI",
-        "Move immediate into B",
-        [CNI | ADI | RO | BI, RST | CNI],
-    ),
-    Instruction(
-        "LDRCI",
-        "Move immediate into C",
-        [CNI | ADI | RO | CI, RST | CNI],
-    ),
-    Instruction(
-        "LDRHI",
-        "Move immediate into H",
-        [CNI | ADI | RO | HI, RST | CNI],
-    ),
-    Instruction(
-        "LDRLI",
-        "Move immediate into L",
-        [CNI | ADI | RO | LI, RST | CNI],
-    ),
+    *[
+        Instruction(
+            f"LDR{destination}I",
+            [CNI | ADI | RO | eval(f"{destination}I"), RST | CNI],
+        )
+        for destination in ["A", "B", "C", "H", "L"]
+    ],
 
     # MEMORY MOVES
-    Instruction(
-        "LDRA@",
-        "Move value at address in adjacent two bytes into A",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | AI, RST | CNI],
-    ),
-    Instruction(
-        "LDRB@",
-        "Move value at address in adjacent two bytes into B",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | BI, RST | CNI],
-    ),
-    Instruction(
-        "LDRC@",
-        "Move value at address in adjacent two bytes into C",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | CI, RST | CNI],
-    ),
-    Instruction(
-        "LDRH@",
-        "Move value at address in adjacent two bytes into H",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | HI, RST | CNI],
-    ),
-    Instruction(
-        "LDRL@",
-        "Move value at address in adjacent two bytes into L",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | LI, RST | CNI],
-    ),
+    *[
+        Instruction(
+            f"LDR{destination}@",
+            [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, RO | eval(f"{destination}I"), RST | CNI],
+        )
+        for destination in ["A", "B", "C", "H", "L"]
+    ],
 
     # M MOVES
-    Instruction(
-        "LDRAM",
-        "Move value at address in M into A",
-        [HO | AHI, LO | ALI, RO | AI, RST | CNI],
-    ),
-    Instruction(
-        "LDRBM",
-        "Move value at address in M into B",
-        [HO | AHI, LO | ALI, RO | BI, RST | CNI],
-    ),
-    Instruction(
-        "LDRCM",
-        "Move value at address in M into C",
-        [HO | AHI, LO | ALI, RO | CI, RST | CNI],
-    ),
-    Instruction(
-        "LDRHM",
-        "Move value at address in M into H",
-        [HO | AHI, LO | ALI, RO | HI, RST | CNI],
-    ),
-    Instruction(
-        "LDRLM",
-        "Move value at address in M into H",
-        [HO | AHI, LO | ALI, RO | LI, RST | CNI],
-    ),
+    *[
+        Instruction(
+            f"LDR{destination}M",
+            [HO | AHI, LO | ALI, RO | eval(f"{destination}I"), RST | CNI],
+        )
+        for destination in ["A", "B", "C", "H", "L"]
+    ],
 
     # REGISTER-REGISTER MOVES
 
     # MOVE INTO A
-    Instruction(
-        "LDRAB",
-        "Move B into A",
-        [BO | AI, RST | CNI],
-    ),
-    Instruction(
-        "LDRAC",
-        "Move C into A",
-        [CO | AI, RST | CNI],
-    ),
-    Instruction(
-        "LDRAL",
-        "Move L into A",
-        [LO | AI, RST | CNI],
-    ),
-    Instruction(
-        "LDRAH",
-        "Move H into A",
-        [HO | AI, RST | CNI],
-    ),
-    Instruction(
-        "LDRABPL",
-        "Move base pointer low into A",
-        [BLO | AI, RST | CNI],
-    ),
-    Instruction(
-        "LDRABPH",
-        "Move base pointer high into A",
-        [BHO | AI, RST | CNI],
-    ),
+    *[
+        Instruction(
+            f"LDRA{source}",
+            [eval(f"{source}O") | AI, RST | CNI],
+        )
+        for source in ["B", "C", "H", "L", "BPL", "BPH", "SPL", "SPH"]
+    ],
 
     # MOVE INTO B
-    Instruction(
-        "LDRBA",
-        "Move A into B",
-        [AO | BI, RST | CNI],
-    ),
-    Instruction(
-        "LDRBC",
-        "Move C into B",
-        [CO | BI, RST | CNI],
-    ),
-    Instruction(
-        "LDRBL",
-        "Move L into B",
-        [LO | BI, RST | CNI],
-    ),
-    Instruction(
-        "LDRBH",
-        "Move H into B",
-        [HO | BI, RST | CNI],
-    ),
+    *[
+        Instruction(
+            f"LDRB{source}",
+            [eval(f"{source}O") | BI, RST | CNI],
+        )
+        for source in ["A", "C", "H", "L"]
+    ],
 
     # MOVE INTO C
-    Instruction(
-        "LDRCA",
-        "Move A into C",
-        [AO | CI, RST | CNI],
-    ),
-    Instruction(
-        "LDRCB",
-        "Move B into C",
-        [BO | CI, RST | CNI],
-    ),
-    Instruction(
-        "LDRCL",
-        "Move L into C",
-        [LO | CI, RST | CNI],
-    ),
-    Instruction(
-        "LDRCH",
-        "Move H into C",
-        [HO | CI, RST | CNI],
-    ),
+    *[
+        Instruction(
+            f"LDRC{source}",
+            [eval(f"{source}O") | CI, RST | CNI],
+        )
+        for source in ["A", "B", "H", "L"]
+    ],
 
     # MOVE INTO L
-    Instruction(
-        "LDRLA",
-        "Move A into L",
-        [AO | LI, RST | CNI],
-    ),
-    Instruction(
-        "LDRLB",
-        "Move B into L",
-        [BO | LI, RST | CNI],
-    ),
-    Instruction(
-        "LDRLC",
-        "Move C into L",
-        [CO | LI, RST | CNI],
-    ),
-    Instruction(
-        "LDRLH",
-        "Move H into L",
-        [HO | LI, RST | CNI],
-    ),
+    *[
+        Instruction(
+            f"LDRL{source}",
+            [eval(f"{source}O") | LI, RST | CNI],
+        )
+        for source in ["A", "B", "C", "H"]
+    ],
 
     # MOVE INTO H
-    Instruction(
-        "LDRHA",
-        "Move A into H",
-        [AO | HI, RST | CNI],
-    ),
-    Instruction(
-        "LDRHB",
-        "Move B into H",
-        [BO | HI, RST | CNI],
-    ),
-    Instruction(
-        "LDRHC",
-        "Move C into H",
-        [CO | HI, RST | CNI],
-    ),
-    Instruction(
-        "LDRHL",
-        "Move L into H",
-        [LO | HI, RST | CNI],
-    ),
+    *[
+        Instruction(
+            f"LDRH{source}",
+            [eval(f"{source}O") | HI, RST | CNI],
+        )
+        for source in ["A", "B", "C", "L"]
+    ],
 
-    # MOVE INTO BP
-    Instruction(
-        "LDRBPLA",
-        "Move A into base pointer low",
-        [AO | BLI, RST | CNI],
-    ),
-    Instruction(
-        "LDRBPHA",
-        "Move A into base pointer high",
-        [AO | BHI, RST | CNI],
-    ),
+
+    # MOVE INTO BPL
+    *[
+        Instruction(
+            f"LDRBPL{source}",
+            [eval(f"{source}O") | BPLI, RST | CNI],
+        )
+        for source in ["A", "SPL"]
+    ],
+
+    # MOVE INTO BPH
+    *[
+        Instruction(
+            f"LDRBPH{source}",
+            [eval(f"{source}O") | BPHI, RST | CNI],
+        )
+        for source in ["A", "SPH"]
+    ],
+
+    # MOVE INTO SPL
+    *[
+        Instruction(
+            f"LDRSPL{source}",
+            [eval(f"{source}O") | SPLI, RST | CNI],
+        )
+        for source in ["A", "BPL"]
+    ],
+
+    # MOVE INTO SPH
+    *[
+        Instruction(
+            f"LDRSPH{source}",
+            [eval(f"{source}O") | SPHI, RST | CNI],
+        )
+        for source in ["A", "BPH"]
+    ],
 
     # STORE IN ADDRESS
-    Instruction(
-        "STR@A",
-        "Move A into address in adjacent two bytes",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, AO | RI, RST | CNI],
-    ),
-    Instruction(
-        "STR@B",
-        "Move B into address in adjacent two bytes",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, BO | RI, RST | CNI],
-    ),
-    Instruction(
-        "STR@C",
-        "Move C into address in adjacent two bytes",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, CO | RI, RST | CNI],
-    ),
-    Instruction(
-        "STR@H",
-        "Move H into address in adjacent two bytes",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, HO | RI, RST | CNI],
-    ),
-    Instruction(
-        "STR@L",
-        "Move L into address in adjacent two bytes",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, LO | RI, RST | CNI],
-    ),
+    *[
+        Instruction(
+            f"STR@{source}",
+            [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | AHI, eval(f"{source}O") | RI, RST | CNI],
+        )
+        for source in ["A", "B", "C", "H", "L"]
+    ],
 
     # STORE IN M
-    Instruction(
-        "STRMA",
-        "Move A into address in M",
-        [HO | AHI, LO | ALI, AO | RO, RST | CNI],
-    ),
-    Instruction(
-        "STRMB",
-        "Move B into address in M",
-        [HO | AHI, LO | ALI, BO | RO, RST | CNI],
-    ),
-    Instruction(
-        "STRMC",
-        "Move C into address in M",
-        [HO | AHI, LO | ALI, CO | RO, RST | CNI],
-    ),
-    Instruction(
-        "STRMH",
-        "Move H into address in M",
-        [HO | AHI, LO | ALI, HO | RO, RST | CNI],
-    ),
-    Instruction(
-        "STRML",
-        "Move L into address in M",
-        [HO | AHI, LO | ALI, LO | RO, RST | CNI],
-    ),
+    *[
+        Instruction(
+            f"STRM{source}",
+            [HO | AHI, LO | ALI, eval(f"{source}O") | RO, RST | CNI],
+        )
+        for source in ["A", "B", "C", "H", "L"]
+    ],
 
     ### JUMP ###
     # CONDITIONAL
     Instruction(
         "JZFI",
-        "Jump if zero to 16-bit immediate",
         jump_immediate,
         [1, 0, 0],
     ),
     Instruction(
         "JNZFI",
-        "Jump if not zero to 16-bit immediate",
         jump_immediate,
         [-1, 0, 0],
     ),
     Instruction(
         "JSFI",
-        "Jump if sign to 16-bit immediate",
         jump_immediate,
         [0, 1, 0],
     ),
     Instruction(
         "JNSFI",
-        "Jump if not sign to 16-bit immediate",
         jump_immediate,
         [0, -1, 0],
     ),
     Instruction(
         "JCFI",
-        "Jump if carry to 16-bit immediate",
         jump_immediate,
         [0, 0, 1],
     ),
     Instruction(
         "JNCFI",
-        "Jump if not carry to 16-bit immediate",
         jump_immediate,
         [0, 0, -1],
     ),
@@ -692,84 +296,48 @@ instructions: list[Instruction] = [
     # UNCONDITIONAL
     Instruction(
         "JI",
-        "Jump to 16-bit immediate",
         jump_immediate,
+    ),
+    Instruction(
+        "JM",
+        jump_m,
     ),
 
     ### STACK ###
+
     # PUSH
     Instruction(
         "PSHI",
-        "Push immediate",
         [CNI | ADI | RO | ATI, STD | MAS, ATO | RI, RST | CNI],
     ),
-    Instruction(
-        "PSHA",
-        "Push A",
-        [STD | MAS, AO | RI, RST | CNI],
-    ),
-    Instruction(
-        "PSHB",
-        "Push B",
-        [STD | MAS, BO | RI, RST | CNI],
-    ),
-    Instruction(
-        "PSHC",
-        "Push C",
-        [STD | MAS, CO | RI, RST | CNI],
-    ),
-    Instruction(
-        "PSHH",
-        "Push H",
-        [STD | MAS, HO | RI, RST | CNI],
-    ),
-    Instruction(
-        "PSHL",
-        "Push L",
-        [STD | MAS, LO | RI, RST | CNI],
-    ),
+    *[
+        Instruction(
+            f"PSH{source}",
+            [STD | MAS, eval(f"{source}O") | RI, RST | CNI],
+        )
+        for source in ["A", "B", "C", "H", "L", "BPH", "BPL", "CNH", "CNL"]
+    ],
     Instruction(
         "PSH@",
-        "Push value at address in adjacent two bytes",
         [CNI | ADI | RO | ATI, CNI | ADI | RO | ALI, ATO | ALI, STD | RO | ATI | MAS, ATO | RI, RST | CNI],
     ),
 
     # POP
-    Instruction(
-        "POPA",
-        "Pop A",
-        [MAS, STI | AI | RO, RST | CNI],
-    ),
-    Instruction(
-        "POPB",
-        "Pop B",
-        [MAS, STI | BI | RO, RST | CNI],
-    ),
-    Instruction(
-        "POPC",
-        "Pop C",
-        [MAS, STI | CI | RO, RST | CNI],
-    ),
-    Instruction(
-        "POPH",
-        "Pop H",
-        [MAS, STI | HI | RO, RST | CNI],
-    ),
-    Instruction(
-        "POPL",
-        "Pop L",
-        [MAS, STI | LI | RO, RST | CNI],
-    ),
+    *[
+        Instruction(
+            f"POP{destination}",
+            [MAS, STI | eval(f"{destination}I") | RO, RST | CNI],
+        )
+        for destination in ["A", "B", "C", "H", "L", "BPH", "BPL"]
+    ],
 
     ### MISC ###
     Instruction(
         "OUT",
-        "Output value in A",
         [AO | OUT, RST | CNI],
     ),
     Instruction(
         "HLT",
-        "Halts",
         [HLT, RST | CNI],
     ),
 ]

@@ -122,17 +122,18 @@ class ArrayType(Type):
         return f"{self.type_.__repr__()} ^ {len(self.elements)}"
 
 class Routine:
-    def __init__(self, parameters: Dict[str, Type], return_type: Type, scope: Dict[str, Type]):
+    def __init__(self, parameters: Dict[str, Type], return_type: Type, scope: Dict[str, Type], is_entry: bool):
         self.parameters = parameters
         self.return_type = return_type
         self.scope = scope
+        self.is_entry = is_entry
 
 class CodeGenerator(StornVisitor):
     def __init__(self):
-        self.instructions: List[str] = []
+        self.instructions: List[str] = ["jmp ENTRY"]
         self.data_table: Dict[str, DataType] = {}
         self.routine_table: Dict[str, Routine] = {}
-        self.current_routine: Routine = Routine({}, Type(), {})
+        self.current_routine: Routine = Routine({}, Type(), {}, False)
         self.label_count = 0
         self.loop_label_stack = []
 
@@ -168,7 +169,7 @@ class CodeGenerator(StornVisitor):
         name = ctx.NAME().getText()
         if name in self.routine_table:
             raise Exception("Redeclaring routine")
-        routine = Routine(parameters, return_type, routine_scope)
+        routine = Routine(parameters, return_type, routine_scope, name == "entry")
         self.routine_table[name] = routine
         self.current_routine = routine
 
@@ -483,6 +484,12 @@ class CodeGenerator(StornVisitor):
         ]
 
     def visitReturnStmt(self, ctx: StornParser.ReturnStmtContext):
+        if self.current_routine.is_entry:
+            self.instructions += [
+                "hlt",
+            ]
+            return
+
         if ctx.expression():
             expression_type = self.visitExpression(ctx.expression())
             if expression_type != self.current_routine.return_type:
@@ -491,7 +498,7 @@ class CodeGenerator(StornVisitor):
         # Epilogue: mov sp bp, pop bp, pop m (return), jmp m
         self.instructions += [
             "ldr sph bph",
-            "ldr shl bpl",
+            "ldr spl bpl",
             "pop bpl",
             "pop bph",
             "pop l",
@@ -760,8 +767,8 @@ class CodeGenerator(StornVisitor):
                     raise Exception("Parameter expression is an inconsistent type with routine expectation")
 
             self.instructions += [
-                "psh ah",
-                "psh al",
+                "psh cnh",
+                "psh cnl",
             ]
 
             return routine.return_type

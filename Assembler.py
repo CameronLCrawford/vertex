@@ -224,9 +224,12 @@ class Assembler(VtxVisitor):
 
     def visitJump(self, ctx: VtxParser.JumpContext):
         condition = ctx.CONDITION().getText().upper() if ctx.CONDITION() else ""
-        label_name = ctx.NAME().getText()
-        instruction = instruction_names.index(f"J{condition}I")
-        return [instruction, label_name, "<LOW_BYTE>"]
+        if ctx.NAME():
+            label_name = ctx.NAME().getText()
+            instruction = instruction_names.index(f"J{condition}I")
+            return [instruction, label_name, "<LOW_BYTE>"]
+        elif ctx.M():
+            return [instruction_names.index(f"J{condition}M")]
 
     def visitOut(self, ctx: VtxParser.OutContext):
         return [instruction_names.index("OUT")]

@@ -98,7 +98,7 @@ shiftRight
         ;
 
 jump
-        : 'jmp' CONDITION? NAME
+        : 'jmp' CONDITION? (NAME | M)
         ;
 
 out
@@ -127,6 +127,10 @@ REGISTER
         | 'l'
         | 'bph'
         | 'bpl'
+        | 'sph'
+        | 'spl'
+        | 'cnh'
+        | 'cnl'
         ;
 
 M
