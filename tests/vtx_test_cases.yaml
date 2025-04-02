@@ -24,3 +24,5 @@
     - "OUTPUT: 16"
 - program: memory
   expected_output: "OUTPUT: 10"
+- program: m
+  expected_output: "OUTPUT: 10"

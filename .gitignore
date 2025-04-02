@@ -1,7 +1,7 @@
 roms/
 out/
 debug/
-storn/
+/storn/
 /vtx/
 .venv/
 __pycache__/

@@ -1,0 +1,7 @@
+ldr l 253
+ldr h 7
+ldr b 10
+str m b
+ldr a m
+out
+hlt

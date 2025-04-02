@@ -18,7 +18,7 @@ class Assembler(VtxVisitor):
     def visitProgram(self, ctx: VtxParser.ProgramContext):
         for line in ctx.line():
             self.visit(line)
-        # Resolve jump names with symbol table
+        # Resolve jump / call names with symbol table
         for i, instruction in enumerate(self.instructions):
             if instruction in self.symbol_table:
                 prefix = self.instructions[:i]
@@ -70,6 +70,8 @@ class Assembler(VtxVisitor):
                 raise Exception("Cannot cast address to int")
             high_byte, low_byte = convert_address_to_bytes(address)
             return [instruction_names.index(f"LDR{destination}@"), high_byte, low_byte]
+        elif source.M():
+            return [instruction_names.index(f"LDR{destination}M")]
 
     def visitStore(self, ctx: VtxParser.StoreContext):
         register = ctx.REGISTER().getText().upper()
@@ -230,6 +232,10 @@ class Assembler(VtxVisitor):
             return [instruction, label_name, "<LOW_BYTE>"]
         elif ctx.M():
             return [instruction_names.index(f"J{condition}M")]
+
+    def visitCall(self, ctx: VtxParser.CallContext):
+        label_name = ctx.NAME().getText()
+        return [instruction_names.index("CAL"), label_name, "<LOW_BYTE>"]
 
     def visitOut(self, ctx: VtxParser.OutContext):
         return [instruction_names.index("OUT")]

@@ -767,8 +767,7 @@ class CodeGenerator(StornVisitor):
                     raise Exception("Parameter expression is an inconsistent type with routine expectation")
 
             self.instructions += [
-                "psh cnh",
-                "psh cnl",
+                f"cal {routine_name.upper()}",
             ]
 
             return routine.return_type

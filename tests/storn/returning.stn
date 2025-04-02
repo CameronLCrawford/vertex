@@ -1,0 +1,15 @@
+routine foo () -> [8] {
+        return 10.
+}
+
+routine bar () -> [8];
+        x: [8].
+{
+        set x = 10.
+        return x.
+}
+
+routine entry () -> [0] {
+        output !foo() + !bar().
+        return.
+}

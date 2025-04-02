@@ -2,3 +2,13 @@
   expected_output: "OUTPUT: 1"
 - program: identity
   expected_output: "OUTPUT: 0"
+- program: calling
+  expected_output: "OUTPUT: 10"
+- program: recursion
+  expected_output: "OUTPUT: 2"
+- program: returning
+  expected_output: "OUTPUT: 20"
+- program: loop
+  expected_output: "OUTPUT: 20"
+- program: data
+  expected_output: "OUTPUT: 10"

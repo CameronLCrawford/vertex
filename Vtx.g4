@@ -30,6 +30,7 @@ instruction
         | shiftLeft
         | shiftRight
         | jump
+        | call
         | out
         | halt
         ;
@@ -101,6 +102,10 @@ jump
         : 'jmp' CONDITION? (NAME | M)
         ;
 
+call
+        : 'cal' NAME
+        ;
+
 out
         : 'out'
         ;
@@ -129,8 +134,7 @@ REGISTER
         | 'bpl'
         | 'sph'
         | 'spl'
-        | 'cnh'
-        | 'cnl'
+        | 'cn'
         ;
 
 M

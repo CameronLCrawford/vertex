@@ -1,0 +1,14 @@
+routine entry () -> [0];
+        i: [8].
+        x: [8].
+{
+        set i = 1.
+        loop {
+                if i = 10 {
+                        break.
+                }
+                set x = x + 2.
+        }
+        output x.
+        return.
+}

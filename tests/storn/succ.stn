@@ -1,0 +1,8 @@
+routine entry () -> [0];
+        x: [8].
+{
+        set x = 0.
+        set x = x + 1.
+        output x.
+        return.
+}

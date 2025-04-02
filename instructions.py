@@ -255,7 +255,7 @@ instructions: list[Instruction] = [
     *[
         Instruction(
             f"STRM{source}",
-            [HO | AHI, LO | ALI, eval(f"{source}O") | RO, RST | CNI],
+            [HO | AHI, LO | ALI, eval(f"{source}O") | RI, RST | CNI],
         )
         for source in ["A", "B", "C", "H", "L"]
     ],
@@ -315,7 +315,7 @@ instructions: list[Instruction] = [
             f"PSH{source}",
             [STD | MAS, eval(f"{source}O") | RI, RST | CNI],
         )
-        for source in ["A", "B", "C", "H", "L", "BPH", "BPL", "CNH", "CNL"]
+        for source in ["A", "B", "C", "H", "L", "BPH", "BPL"]
     ],
     Instruction(
         "PSH@",
@@ -330,6 +330,12 @@ instructions: list[Instruction] = [
         )
         for destination in ["A", "B", "C", "H", "L", "BPH", "BPL"]
     ],
+
+    # CALL
+    Instruction(
+        "CAL",
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | AI, STD | MAS, CNHO | RI, STD | MAS, CNLO | RI, ATO | CNHI, AO | CNLI, RST],
+    ),
 
     ### MISC ###
     Instruction(

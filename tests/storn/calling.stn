@@ -1,0 +1,14 @@
+routine foo () -> [0];
+        x: [8].
+{
+        set x = 10.
+        output x.
+        return.
+}
+
+routine entry () -> [0];
+        y: [0].
+{
+        set y = !foo().
+        return.
+}
