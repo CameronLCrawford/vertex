@@ -334,7 +334,7 @@ instructions: list[Instruction] = [
     # CALL
     Instruction(
         "CAL",
-        [CNI | ADI | RO | ATI, CNI | ADI | RO | AI, STD | MAS, CNHO | RI, STD | MAS, CNLO | RI, ATO | CNHI, AO | CNLI, RST],
+        [CNI | ADI | RO | ATI, CNI | ADI | RO | AI, CNI | STD | MAS, CNHO | RI, STD | MAS, CNLO | RI, ATO | CNHI, AO | CNLI, RST],
     ),
 
     ### MISC ###

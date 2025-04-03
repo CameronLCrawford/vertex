@@ -264,6 +264,10 @@ class CodeGenerator(StornVisitor):
         self.instructions += [
             f"ldr c {expression_type.size}",
             f"L{self.label_count}:",
+            "ldr a c",
+            f"jmp zf L{self.label_count + 1}",
+            "dec",
+            "ldr c a",
             "pop a",
             "str m a",
             "ldr a l",
@@ -272,12 +276,10 @@ class CodeGenerator(StornVisitor):
             "ldr a h",
             "dec cc",
             "ldr h a",
-            "ldr a c",
-            "dec",
-            "ldr c a",
-            f"jmp nzf L{self.label_count}",
+            f"jmp L{self.label_count}",
+            f"L{self.label_count + 1}:",
         ]
-        self.label_count += 1
+        self.label_count += 2
 
     def visitLvalue(self, ctx: StornParser.LvalueContext) -> Type:
         return self.visitIndexLvalue(ctx.indexLvalue())
@@ -300,20 +302,23 @@ class CodeGenerator(StornVisitor):
             # Naive multiplication
             # HL := HL - index * size
             self.instructions += [
-                f"ldr c {size}",
                 "pop b", # index
+                f"ldr c {size}",
                 f"L{self.label_count}:",
+                "ldr a c",
+                f"jmp zf L{self.label_count + 1}",
+                "dec",
+                "ldr c a",
                 "ldr a l",
                 "sub b",
                 "ldr l a",
                 "ldr a h",
                 "dec cc",
                 "ldr h a",
-                "ldr a c",
-                "dec",
-                f"jmp nzf L{self.label_count}",
+                f"jmp L{self.label_count}",
+                f"L{self.label_count + 1}:",
             ]
-            self.label_count += 1
+            self.label_count += 2
 
             lvalue = lvalue.type_
 
@@ -414,6 +419,10 @@ class CodeGenerator(StornVisitor):
             variable = resolved_variable
 
         offset = variable.offset
+        if offset_operation == "add":
+            # Read visitTypedParamList
+            offset += 3
+            offset += variable.size
         offset_low = offset & 0b11111111
         offset_high = offset >> 8
 
@@ -494,6 +503,43 @@ class CodeGenerator(StornVisitor):
             expression_type = self.visitExpression(ctx.expression())
             if expression_type != self.current_routine.return_type:
                 raise Exception("Return type doesn't matched expectation for routine")
+
+            # Copy expression result from stack to caller-allocated return space on stack
+            # Start of caller-allocated return space is at: BP + 1 (caller BPH) + 2 (return addr) + param size
+            # Pop and increment
+            total_parameter_size = sum([
+                param.size
+                for param in self.current_routine.parameters.values()
+            ])
+            offset = total_parameter_size + 4
+            offset_low = offset & 0b11111111
+            offset_high = offset >> 8
+
+            self.instructions += [
+                "ldr a bpl",
+                f"add {offset_low}",
+                "ldr l a",
+                "ldr a bph",
+                f"add cc {offset_high}",
+                "ldr h a",
+                f"ldr c {self.current_routine.return_type.size}",
+                f"L{self.label_count}:",
+                "ldr a c",
+                f"jmp zf L{self.label_count + 1}",
+                "dec",
+                "ldr c a",
+                "pop a",
+                "str m a",
+                "ldr a l",
+                "inc",
+                "ldr l a",
+                "ldr a h",
+                "inc cc",
+                "ldr h a",
+                f"jmp L{self.label_count}",
+                f"L{self.label_count + 1}:",
+            ]
+            self.label_count += 2
 
         # Epilogue: mov sp bp, pop bp, pop m (return), jmp m
         self.instructions += [
@@ -757,20 +803,47 @@ class CodeGenerator(StornVisitor):
             else:
                 raise Exception("Reference to unknown routine")
 
-            self.visitParameters(ctx.call().parameters())
+            # Allocate space for return bytes on stack
+            return_type = routine.return_type
+            return_size = return_type.size
+            return_size_low = return_size & 0b11111111
+            return_size_high = return_size >> 8
+            self.instructions += [
+                "ldr a spl",
+                f"sub {return_size_low}",
+                "ldr spl a",
+                "ldr a sph",
+                f"sub cc {return_size_high}",
+                "ldr sph a",
+            ]
+
             parameters = ctx.call().parameters().expression()
             expected_parameter_types = self.routine_table[routine_name].parameters.values()
 
+            total_parameter_size = 0
             for parameter, expected_parameter_type in zip(reversed(parameters), reversed(expected_parameter_types)):
                 parameter_type = self.visitExpression(parameter)
                 if parameter_type != expected_parameter_type:
                     raise Exception("Parameter expression is an inconsistent type with routine expectation")
+                total_parameter_size += parameter_type.size
 
             self.instructions += [
                 f"cal {routine_name.upper()}",
             ]
 
-            return routine.return_type
+            # Pop parameters
+            param_size_low = total_parameter_size & 0b11111111
+            param_size_high = total_parameter_size >> 8
+            self.instructions +=  [
+                "ldr a spl",
+                f"add {param_size_low}",
+                "ldr spl a",
+                "ldr a sph",
+                f"add cc {param_size_high}",
+                "ldr sph a",
+            ]
+
+            return return_type
         elif ctx.lvalue():
             lvalue = self.visitLvalue(ctx.lvalue())
 
@@ -778,6 +851,10 @@ class CodeGenerator(StornVisitor):
             self.instructions += [
                 f"ldr c {lvalue.size}",
                 f"L{self.label_count}:",
+                "ldr a c",
+                f"jmp zf L{self.label_count + 1}",
+                "dec",
+                "ldr c a",
                 "ldr a m",
                 "psh a",
                 "ldr a l",
@@ -786,12 +863,10 @@ class CodeGenerator(StornVisitor):
                 "ldr a h",
                 "inc cc",
                 "ldr h a",
-                "ldr a c",
-                "dec",
-                "ldr c a",
-                f"jmp nzf L{self.label_count}",
+                f"jmp L{self.label_count}",
+                f"L{self.label_count + 1}:",
             ]
-            self.label_count += 1
+            self.label_count += 2
 
             return lvalue
         else:

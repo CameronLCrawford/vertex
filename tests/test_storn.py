@@ -25,7 +25,7 @@ def run_storn_test(program_name):
         ["./out/vertex", "roms/control", rom_path],
         capture_output=True,
         text=True,
-        timeout=10,
+        timeout=2,
     )
     return result.stdout + result.stderr
 
