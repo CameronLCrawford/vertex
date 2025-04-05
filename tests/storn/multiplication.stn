@@ -1,0 +1,9 @@
+routine entry () -> [0];
+        x: [8].
+        y: [8].
+{
+        set x = 100.
+        set y = 100.
+        output x * y.
+        return.
+}

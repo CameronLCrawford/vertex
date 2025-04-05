@@ -12,3 +12,7 @@
   expected_output: "OUTPUT: 20"
 - program: data
   expected_output: "OUTPUT: 10"
+- program: multiplication
+  expected_output:
+    - "OUTPUT: 16"
+    - "OUTPUT: 39"

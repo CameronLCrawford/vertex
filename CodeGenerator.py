@@ -484,13 +484,20 @@ class CodeGenerator(StornVisitor):
 
     def visitOutputStmt(self, ctx: StornParser.OutputStmtContext):
         expression = self.visitExpression(ctx.expression())
-        if not (isinstance(expression, BaseType) and expression.width == 8):
-            raise Exception("Out expression evaluates to non [8] type")
 
         self.instructions += [
+            f"ldr c {expression.size}",
+            f"L{self.label_count}:",
+            "ldr a c",
+            f"jmp zf L{self.label_count + 1}",
+            "dec",
+            "ldr c a",
             "pop a",
             "out",
+            f"jmp L{self.label_count}",
+            f"L{self.label_count + 1}:",
         ]
+        self.label_count += 2
 
     def visitReturnStmt(self, ctx: StornParser.ReturnStmtContext):
         if self.current_routine.is_entry:
@@ -717,6 +724,7 @@ class CodeGenerator(StornVisitor):
             self.instructions += [
                 "pop l", # multiplier
                 "pop b", # multiplicand
+                "ldr h 0",
                 "ldr c 8",
                 f"L{self.label_count}:",
                 "ldr a l",
@@ -741,7 +749,7 @@ class CodeGenerator(StornVisitor):
             ]
             self.label_count += 2
 
-            expression = next_expression
+            expression = BaseType(16)
 
         return expression
 
