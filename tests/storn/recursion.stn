@@ -1,14 +1,14 @@
 routine foo (x: [8]) -> [8] {
-        if x = 2 {
+        if x = 2:8 {
                 return x.
         }
-        return !foo(x - 1).
+        return !foo(x - 1:8).
 }
 
 routine entry () -> [0];
         y: [8].
 {
-        set y = !foo(10).
+        set y = !foo(10:8).
         output y.
         return.
 }

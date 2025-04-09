@@ -6,7 +6,7 @@ data foo {
 routine entry () -> [0];
         x: [foo].
 {
-        set $(x / b @ 2) = 10.
-        output $(x / b @ 2).
+        set $(x / b @ 2:8) = 10:8.
+        output $(x / b @ 2:8).
         return.
 }

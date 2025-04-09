@@ -139,7 +139,12 @@ primaryExpr
         : '(' expression ')'
         | call
         | lvalue
-        | CONSTANT
+        | CONSTANT ':' literalWidth
+        ;
+
+literalWidth
+        : '8'
+        | '16'
         ;
 
 call

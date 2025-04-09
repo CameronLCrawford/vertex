@@ -879,10 +879,21 @@ class CodeGenerator(StornVisitor):
             return lvalue
         else:
             constant = ctx.CONSTANT().getText()
-            self.instructions += [
-                f"psh {constant}"
-            ]
-            return BaseType(8)
+            width = int(ctx.literalWidth().getText())
+
+            if width == 8:
+                self.instructions += [
+                    f"psh {constant}"
+                ]
+            elif width == 16:
+                constant_low = constant & 0b11111111
+                constant_high = constant >> 8
+                self.instructions += [
+                    f"psh {constant_low}",
+                    f"psh {constant_high}",
+                ]
+
+            return BaseType(width)
 
     def visitType(self, ctx: StornParser.TypeContext) -> Type:
         if ctx.getChildCount() == 1: # Base type
