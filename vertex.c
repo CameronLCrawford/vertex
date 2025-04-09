@@ -559,7 +559,7 @@ int main(int argc, char **argv)
     executionStage = EXEC_STAGE_HALT;
     logMessage(LOG_LEVEL_INFO, "Program halted.");
 
-    free(cpu.ram);
+    munmap(cpu.ram, RAM_SIZE);
     free(cpu.controlROM);
 
     return 0;
