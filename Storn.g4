@@ -133,16 +133,17 @@ multiplicativeExpr
 
 unaryExpr
         : (MINUS | NOT)? primaryExpr
+        | primaryExpr ':' width
         ;
 
 primaryExpr
         : '(' expression ')'
         | call
         | lvalue
-        | CONSTANT ':' literalWidth
+        | CONSTANT ':' width
         ;
 
-literalWidth
+width
         : '8'
         | '16'
         ;

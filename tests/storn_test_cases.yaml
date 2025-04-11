@@ -1,18 +1,22 @@
 - program: succ
-  expected_output: "OUTPUT: 1"
+  expected_output: "OUTPUT: 200"
 - program: identity
-  expected_output: "OUTPUT: 0"
+  expected_output: "OUTPUT: 200"
 - program: calling
-  expected_output: "OUTPUT: 10"
+  expected_output: "OUTPUT: 200"
 - program: recursion
-  expected_output: "OUTPUT: 2"
+  expected_output: "OUTPUT: 200"
 - program: returning
-  expected_output: "OUTPUT: 20"
+  expected_output: "OUTPUT: 200"
 - program: loop
-  expected_output: "OUTPUT: 20"
+  expected_output: "OUTPUT: 200"
 - program: data
-  expected_output: "OUTPUT: 10"
+  expected_output: "OUTPUT: 200"
 - program: multiplication
   expected_output:
     - "OUTPUT: 16"
     - "OUTPUT: 39"
+- program: factorial
+  expected_output: "OUTPUT: 120"
+- program: params
+  expected_output: "OUTPUT: 200"

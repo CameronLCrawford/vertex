@@ -1,11 +1,11 @@
 routine foo () -> [8] {
-        return 10:8.
+        return 100:8.
 }
 
 routine bar () -> [8];
         x: [8].
 {
-        set x = 10:8.
+        set x = 100:8.
         return x.
 }
 

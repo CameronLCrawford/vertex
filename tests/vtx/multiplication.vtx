@@ -1,9 +1,9 @@
 psh 100
 psh 100
 
-pop l ' multiplier
+pop l ' multiplier / output low
 pop b ' multiplicand
-
+ldr h 0 ' output high
 ldr c 8 ' counter
 
 ONE:

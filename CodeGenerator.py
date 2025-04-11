@@ -419,10 +419,6 @@ class CodeGenerator(StornVisitor):
             variable = resolved_variable
 
         offset = variable.offset
-        if offset_operation == "add":
-            # Read visitTypedParamList
-            offset += 3
-            offset += variable.size
         offset_low = offset & 0b11111111
         offset_high = offset >> 8
 
@@ -444,15 +440,18 @@ class CodeGenerator(StornVisitor):
         if not (isinstance(expression, BaseType) and expression.width == 8):
             raise Exception("If condition expression evaluates to non [8] type")
 
+        jump_label = self.label_count
+        self.label_count += 1
+
         self.instructions += [
             "pop a",
-            f"jmp zf L{self.label_count}"
+            f"jmp zf L{jump_label}"
         ]
 
         self.visitStatements(ctx.statements())
 
         self.instructions += [
-            f"L{self.label_count}:",
+            f"L{jump_label}:",
         ]
         self.label_count += 1
 
@@ -717,7 +716,7 @@ class CodeGenerator(StornVisitor):
         for i in range(unary_count):
             if not (isinstance(expression, BaseType) and expression.width == 8):
                 raise Exception("Attempting to multiply expression not of type [8]")
-            next_expression = self.visitUnaryExpr(ctx.unaryExpr(i))
+            next_expression = self.visitUnaryExpr(ctx.unaryExpr(i + 1))
             if not (isinstance(next_expression, BaseType) and next_expression.width == 8):
                 raise Exception("Attempting to multiply expression not of type [8]")
 
@@ -798,6 +797,30 @@ class CodeGenerator(StornVisitor):
                         "psh a",
                         "psh b",
                     ]
+        elif ctx.width():
+            if not isinstance(expression, BaseType):
+                raise Exception("Attemping to perform unary operation on non numerical type")
+
+            current_width = expression.width
+            new_width = int(ctx.width().getText())
+
+            if current_width == new_width:
+                return expression
+
+            if new_width == 8: # narrowing
+                self.instructions += [
+                    "pop a",
+                    "pop b",
+                    "psh a",
+                ]
+            elif new_width == 16: # promotion
+                self.instructions += [
+                    "pop a",
+                    "psh 0",
+                    "psh a",
+                ]
+
+            return BaseType(new_width)
 
         return expression
 
@@ -879,7 +902,7 @@ class CodeGenerator(StornVisitor):
             return lvalue
         else:
             constant = ctx.CONSTANT().getText()
-            width = int(ctx.literalWidth().getText())
+            width = int(ctx.width().getText())
 
             if width == 8:
                 self.instructions += [
