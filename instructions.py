@@ -90,6 +90,12 @@ class Instruction():
         self.scopes = scopes
 
 instructions: list[Instruction] = [
+    ### NOP ###
+    Instruction(
+        "NOP",
+        []
+    ),
+
     ### ALU ###
 
     # REGISTER

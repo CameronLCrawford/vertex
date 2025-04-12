@@ -2,6 +2,8 @@ from vtx.VtxVisitor import VtxVisitor
 from vtx.VtxParser import VtxParser
 from instructions import instructions, instruction_names
 
+MEMORY_SIZE = 2**16
+
 def convert_address_to_bytes(address: int) -> tuple[int, int]:
     binary_address = bin(address)[2:].zfill(16)
     high_byte = int(binary_address[:8], 2)
@@ -11,22 +13,25 @@ def convert_address_to_bytes(address: int) -> tuple[int, int]:
 class Assembler(VtxVisitor):
     def __init__(self):
         self.instructions: list[int] = []
-        self.symbol_table: dict[str, int] = {}
-        self.current_address = 2**15
+        self.label_offset: dict[str, int] = {} # map from label to its offset relative to start of program
+        self.program_offset = 0 # offset from start of program
         self.debug_info = []
 
     def visitProgram(self, ctx: VtxParser.ProgramContext):
         for line in ctx.line():
             self.visit(line)
         # Resolve jump / call names with symbol table
+        program_size = len(self.instructions)
+        for label in self.label_offset:
+            self.label_offset[label] += MEMORY_SIZE - program_size
         for i, instruction in enumerate(self.instructions):
-            if instruction in self.symbol_table:
+            if instruction in self.label_offset:
                 prefix = self.instructions[:i]
                 try:
                     suffix = self.instructions[(i + 2):]
                 except IndexError:
                     suffix = []
-                address_bytes = convert_address_to_bytes(self.symbol_table[instruction])
+                address_bytes = convert_address_to_bytes(self.label_offset[instruction])
                 self.instructions = prefix + list(address_bytes) + suffix
             elif instruction == "<LOW_BYTE>":
                 continue
@@ -38,15 +43,15 @@ class Assembler(VtxVisitor):
 
     def visitLabel(self, ctx: VtxParser.LabelContext):
         label_name = ctx.NAME().getText()
-        if label_name in self.symbol_table:
+        if label_name in self.label_offset:
             print(f"Warning: Label {label_name} defined more than once")
-        self.symbol_table[label_name] = self.current_address
+        self.label_offset[label_name] = self.program_offset
 
     def visitInstruction(self, ctx: VtxParser.InstructionContext):
         instruction = self.visitChildren(ctx)
         if instruction:
             self.instructions += instruction
-            self.current_address += len(instruction)
+            self.program_offset += len(instruction)
             debug_instruction = instructions[instruction[0]]
             self.debug_info.append([
                 debug_instruction.name,

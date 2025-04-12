@@ -8,8 +8,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-#define COMMAND_ROM_BYTES 65536
-#define PROGRAM_ROM_BYTES 65536
+#define CONTROL_ROM_BYTES 65536
 #define RAM_SIZE 65536
 #define SHM_FILE "/tmp/vtx_shm"
 
@@ -199,7 +198,10 @@ void tick(CPUState *cpu)
         logMessage(LOG_LEVEL_DEBUG, "Incrementing counter register");
         if (++cpu->registers[REG_COUNTER_L] == 0)
         {
-            cpu->registers[REG_COUNTER_H]++;
+            if (++cpu->registers[REG_COUNTER_H])
+            {
+                logMessage(LOG_LEVEL_ERROR, "Counter overflow");
+            };
         }
     }
     if ((cpu->controlBus >> CTRL_ADDRESS_INC) & 0b1)
@@ -474,25 +476,29 @@ int main(int argc, char **argv)
 
     // Connect to mmap RAM
     int shm_fd = open(SHM_FILE, O_RDWR | O_CREAT, 0666);
-    if (shm_fd < 0) {
+    if (shm_fd < 0)
+    {
         logMessage(LOG_LEVEL_ERROR, "Unable to open shared memory file");
         return 1;
     }
-    if (ftruncate(shm_fd, RAM_SIZE) < 0) {
+    if (ftruncate(shm_fd, RAM_SIZE) < 0)
+    {
         logMessage(LOG_LEVEL_ERROR, "Shared memory file different size to program ROM");
         close(shm_fd);
         return 1;
     }
     cpu.ram = mmap(NULL, RAM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-    if (cpu.ram == MAP_FAILED) {
+    if (cpu.ram == MAP_FAILED)
+    {
         logMessage(LOG_LEVEL_ERROR, "Map failed");
         close(shm_fd);
         return 1;
     }
     close(shm_fd);
 
-    cpu.controlROM = (uint32_t *)malloc(sizeof(uint32_t) * COMMAND_ROM_BYTES);
-    if (!cpu.controlROM) {
+    cpu.controlROM = (uint32_t *)malloc(sizeof(uint32_t) * CONTROL_ROM_BYTES);
+    if (!cpu.controlROM)
+    {
         logMessage(LOG_LEVEL_ERROR, "Unable to allocate control ROM");
         munmap(cpu.ram, RAM_SIZE);
         return 1;
@@ -500,11 +506,7 @@ int main(int argc, char **argv)
 
     // Initialisation:
 
-    // 1. Reset CPU state
-    cpu.registers[REG_COUNTER_H] = 128;
-    cpu.registers[REG_STACK_H] = 8;
-
-    // 2. Load control ROM
+    // Load control ROM
     logMessage(LOG_LEVEL_INFO, "Loading control ROM");
 
     // Open file
@@ -516,8 +518,8 @@ int main(int argc, char **argv)
     }
 
     // Read ROM into buffer
-    size_t commandBytesRead = fread(cpu.controlROM, sizeof(uint32_t), COMMAND_ROM_BYTES, command_file);
-    if (commandBytesRead != COMMAND_ROM_BYTES)
+    size_t controlBytesRead = fread(cpu.controlROM, sizeof(uint32_t), CONTROL_ROM_BYTES, command_file);
+    if (controlBytesRead != CONTROL_ROM_BYTES)
     {
         logMessage(LOG_LEVEL_ERROR, "Command ROM file read error");
         fclose(command_file);
@@ -526,7 +528,7 @@ int main(int argc, char **argv)
 
     logMessage(LOG_LEVEL_INFO, "Loaded control ROM");
 
-    // 3. Load program ROM into memory
+    // Load program ROM into memory
     logMessage(LOG_LEVEL_INFO, "Loading program ROM");
 
     // Open file
@@ -538,8 +540,11 @@ int main(int argc, char **argv)
     }
 
     // Read ROM into buffer
-    size_t programBytesRead = fread(cpu.ram, sizeof(uint8_t), PROGRAM_ROM_BYTES, program_file);
-    if (programBytesRead != PROGRAM_ROM_BYTES)
+    fseek(program_file, 0, SEEK_END);
+    size_t programSize = ftell(program_file);
+    fseek(program_file, 0, SEEK_SET);
+    size_t programBytesRead = fread(cpu.ram + RAM_SIZE - programSize, sizeof(uint8_t), programSize, program_file);
+    if (programBytesRead != programSize)
     {
         logMessage(LOG_LEVEL_ERROR, "Program ROM file read error");
         fclose(program_file);
@@ -547,6 +552,14 @@ int main(int argc, char **argv)
     }
 
     logMessage(LOG_LEVEL_INFO, "Loaded program ROM");
+
+    // Set initial CPU state
+    uint16_t programStartAddress = RAM_SIZE - programSize;
+    uint16_t initialStackPointer = programStartAddress - 1;
+    cpu.registers[REG_COUNTER_L] = programStartAddress & 0b11111111;
+    cpu.registers[REG_COUNTER_H] = programStartAddress >> 8;
+    cpu.registers[REG_STACK_L] = initialStackPointer & 0b11111111;
+    cpu.registers[REG_STACK_H] = initialStackPointer >> 8;
 
     // Execute until halt
     logMessage(LOG_LEVEL_INFO, "Initialisation complete. Starting execution:");
