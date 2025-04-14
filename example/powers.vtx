@@ -1,9 +1,0 @@
-mov a 1
-MAIN:
-out
-shl
-jmp zf END
-jmp MAIN
-END:
-hlt
-

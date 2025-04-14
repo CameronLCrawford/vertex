@@ -3,6 +3,18 @@ from storn.StornVisitor import StornVisitor
 from storn.StornParser import StornParser
 import copy
 
+class CompileError(Exception):
+    def __init__(self, message, line=None, column=None):
+        self.message = message
+        self.line = line
+        self.column = column
+        super().__init__(self.__str__())
+
+    def __str__(self) -> str:
+        if self.line is not None and self.column is not None:
+            return f"{self.line}:{self.column} {self.message}"
+        return self.message
+
 class Type:
     def __init__(self):
         self.size = 0
@@ -54,7 +66,7 @@ class DataType(Type):
     def __init__(self, name: str, fields: Dict[str, Type]):
         for field in fields:
             if isinstance(field, UnresolvedType) and field.name == name:
-                raise Exception("Cannot declare subfield of same type")
+                raise CompileError(f"Cannot declare field of same type for data type {name}")
         self.name = name
         self.fields = fields
         self.size = 0
@@ -168,7 +180,7 @@ class CodeGenerator(StornVisitor):
         routine_scope, size = self.visitLocalVars(ctx.localVars())
         name = ctx.NAME().getText()
         if name in self.routine_table:
-            raise Exception("Redeclaring routine")
+            raise CompileError("Redeclaring routine", ctx.NAME().start.line, ctx.NAME().start.column)
         routine = Routine(parameters, return_type, routine_scope, name == "entry")
         self.routine_table[name] = routine
         self.current_routine = routine
@@ -258,7 +270,7 @@ class CodeGenerator(StornVisitor):
         lvalue_type = self.visitLvalue(lvalue)
 
         if lvalue_type != expression_type:
-            raise Exception("lvalue and expression are of different types")
+            raise CompileError("lvalue and expression are of different types", lvalue.start.line, lvalue.start.column)
 
         # Copy bytes from stack to memory range [<HL>, <HL - size>]
         self.instructions += [
@@ -291,11 +303,11 @@ class CodeGenerator(StornVisitor):
         expression_count = (ctx.getChildCount() - 1) // 2
         for i in range(expression_count):
             if not isinstance(lvalue, ArrayType):
-                raise Exception("Attemping to index non array type")
+                raise CompileError("Attemping to index non array type", ctx.projectionLvalue().start.line, ctx.projectionLvalue().start.line)
 
             index = self.visitExpression(ctx.expression(i))
             if not (isinstance(index, BaseType) and index.width == 8):
-                raise Exception("Attempting to index by expression that doesn't evaluate to [8]")
+                raise CompileError("Attempting to index by expression that doesn't evaluate to [8]", ctx.expression(i).start.line, ctx.expression(i).start.column)
 
             size = lvalue.size
 
@@ -327,24 +339,19 @@ class CodeGenerator(StornVisitor):
 
         return lvalue
 
-    # TODO:
-    # Consider `set foo / x / y = 10.`:
-    #   - foo is a variable with a known offset
-    #   - we know address of `y` at compilation
-    #   - we can disregard instructions used to compute `foo / x`
     def visitProjectionLvalue(self, ctx: StornParser.ProjectionLvalueContext) -> Type:
         lvalue = self.visitReferenceLvalue(ctx.referenceLvalue())
 
         field_count = (ctx.getChildCount() - 1) // 2
         for i in range(field_count):
             if not isinstance(lvalue, DataType):
-                raise Exception("Attempting to project non data type")
+                raise CompileError("Attempting to project non data type", ctx.referenceLvalue().start.line, ctx.referenceLvalue().start.column)
 
             field_name = ctx.NAME(i).getText()
 
             field_type = lvalue.fields[field_name]
             if not field_type:
-                raise Exception("Attemping to project unknown field")
+                raise CompileError("Attemping to project unknown field", ctx.NAME(i).start.line, ctx.NAME(i).start.column)
 
             if isinstance(field_type, UnresolvedType):
                 # Don't need to recalculate size or offset
@@ -375,7 +382,7 @@ class CodeGenerator(StornVisitor):
 
         if ctx.DEREFERENCE():
             if not isinstance(lvalue, ReferenceType):
-                raise Exception("Attempting to dereference non reference type")
+                raise CompileError("Attempting to dereference non reference type", ctx.primaryLvalue().start.line, ctx.primaryLvalue().start.column)
 
             # Address of reference is in HL
             # Need address referenced by said reference in HL
@@ -411,7 +418,7 @@ class CodeGenerator(StornVisitor):
         elif variable_name in self.current_routine.parameters:
             variable = self.current_routine.parameters[variable_name]
         else:
-            raise Exception("Reference to unknown variable")
+            raise CompileError("Reference to unknown variable", ctx.NAME().start.line, ctx.NAME().start.column)
 
         if isinstance(variable, UnresolvedType):
             resolved_variable = self.data_table[variable.name].copy()
@@ -437,8 +444,8 @@ class CodeGenerator(StornVisitor):
 
     def visitIfStmt(self, ctx: StornParser.IfStmtContext):
         expression = self.visitExpression(ctx.expression())
-        if not (isinstance(expression, BaseType) and expression.width == 8):
-            raise Exception("If condition expression evaluates to non [8] type")
+        if not isinstance(expression, BaseType):
+            raise CompileError("If condition expression evaluates to non numeric type", ctx.expression().start.line, ctx.expression().start.column)
 
         jump_label = self.label_count
         self.label_count += 1
@@ -447,6 +454,11 @@ class CodeGenerator(StornVisitor):
             "pop a",
             f"jmp zf L{jump_label}"
         ]
+        if expression.width == 16:
+            self.instructions += [
+                "pop a",
+                f"jmp zf L{jump_label}"
+            ]
 
         self.visitStatements(ctx.statements())
 
@@ -481,6 +493,61 @@ class CodeGenerator(StornVisitor):
             f"jmp L{self.loop_label_stack[-1] + 1}"
         ]
 
+    def visitContinueStmt(self, ctx: StornParser.ContinueStmtContext):
+        # See visitBreakStmt
+        self.instructions += [
+            f"jmp L{self.loop_label_stack[-1]}"
+        ]
+
+    def visitCall(self, ctx: StornParser.CallContext) -> Type:
+        routine_name = ctx.NAME().getText()
+        if routine_name in self.routine_table:
+            routine = self.routine_table[routine_name]
+        else:
+            raise CompileError("Reference to unknown routine", ctx.NAME().start.line, ctx.NAME().start.column)
+
+        # Allocate space for return bytes on stack
+        return_type = routine.return_type
+        return_size = return_type.size
+        return_size_low = return_size & 0b11111111
+        return_size_high = return_size >> 8
+        self.instructions += [
+            "ldr a spl",
+            f"sub {return_size_low}",
+            "ldr spl a",
+            "ldr a sph",
+            f"sub cc {return_size_high}",
+            "ldr sph a",
+        ]
+
+        parameters = ctx.parameters().expression()
+        expected_parameter_types = self.routine_table[routine_name].parameters.values()
+
+        total_parameter_size = 0
+        for parameter, expected_parameter_type in zip(reversed(parameters), reversed(expected_parameter_types)):
+            parameter_type = self.visitExpression(parameter)
+            if parameter_type != expected_parameter_type:
+                raise CompileError("Parameter expression is an inconsistent type with routine expectation", parameter.start.line, parameter.start.column)
+            total_parameter_size += parameter_type.size
+
+        self.instructions += [
+            f"cal {routine_name.upper()}",
+        ]
+
+        # Pop parameters
+        param_size_low = total_parameter_size & 0b11111111
+        param_size_high = total_parameter_size >> 8
+        self.instructions +=  [
+            "ldr a spl",
+            f"add {param_size_low}",
+            "ldr spl a",
+            "ldr a sph",
+            f"add cc {param_size_high}",
+            "ldr sph a",
+        ]
+
+        return return_type
+
     def visitOutputStmt(self, ctx: StornParser.OutputStmtContext):
         expression = self.visitExpression(ctx.expression())
 
@@ -508,7 +575,7 @@ class CodeGenerator(StornVisitor):
         if ctx.expression():
             expression_type = self.visitExpression(ctx.expression())
             if expression_type != self.current_routine.return_type:
-                raise Exception("Return type doesn't matched expectation for routine")
+                raise CompileError("Return type doesn't matched expectation for routine", ctx.expression().start.line, ctx.expression().start.column)
 
             # Copy expression result from stack to caller-allocated return space on stack
             # Start of caller-allocated return space is at: BP + 1 (caller BPH) + 2 (return addr) + param size
@@ -567,14 +634,14 @@ class CodeGenerator(StornVisitor):
         comparative_count = (ctx.getChildCount() - 1) // 2
         for i in range(comparative_count):
             if not isinstance(expression, BaseType):
-                raise Exception("Attemping to perform logical operation on non numerical type")
+                raise CompileError("Attempting to perform logical operation on non numerical type", ctx.comparativeExpr(i).start.line, ctx.comparativeExpr(i).start.line)
             next_expression = self.visitComparativeExpr(ctx.comparativeExpr(i + 1))
             if not isinstance(next_expression, BaseType):
-                raise Exception("Attemping to perform logical operation on non numerical type")
+                raise CompileError("Attempting to perform logical operation on non numerical type", ctx.comparativeExpr(i + 1).start.line, ctx.comparativeExpr(i + 1).start.column)
             if expression.width != next_expression.width:
-                raise Exception("Attemping to perform logical operation on expressions of differing width")
+                raise CompileError("Attempting to perform logical operation on expressions of differing width", ctx.logicalOp(i).start.line, ctx.logicalOp(i).start.column)
 
-            operation = ctx.logicalOp()
+            operation = ctx.logicalOp(i)
             width = expression.width
             op_instruction = "or b" if operation.OR() else "and b"
             if width == 8:
@@ -606,12 +673,12 @@ class CodeGenerator(StornVisitor):
         additive_count = (ctx.getChildCount() - 1) // 2
         for i in range(additive_count):
             if not isinstance(expression, BaseType):
-                raise Exception("Attemping to perform comparative operation on non numerical type")
+                raise CompileError("Attemping to perform comparative operation on non numerical type", ctx.additiveExpr(i).start.line, ctx.additiveExpr(i).start.column)
             next_expression = self.visitAdditiveExpr(ctx.additiveExpr(i + 1))
             if not isinstance(next_expression, BaseType):
-                raise Exception("Attemping to perform comparative operation on non numerical type")
+                raise CompileError("Attemping to perform comparative operation on non numerical type", ctx.additiveExpr(i + 1).start.line, ctx.additiveExpr(i + 1).start.column)
             if expression.width != next_expression.width:
-                raise Exception("Attemping to perform comparative operation on expressions of differing width")
+                raise CompileError("Attemping to perform comparative operation on expressions of differing width", ctx.comparativeOp(i).start.line, ctx.comparativeOp(i).start.column)
 
             operation = ctx.comparativeOp(i)
             width = expression.width
@@ -675,12 +742,12 @@ class CodeGenerator(StornVisitor):
         multiplicative_count = (ctx.getChildCount() - 1) // 2
         for i in range(multiplicative_count):
             if not isinstance(expression, BaseType):
-                raise Exception("Attemping to perform additive operation on non numerical type")
+                raise CompileError("Attemping to perform additive operation on non numerical type", ctx.multiplicativeExpr(i).start.line, ctx.multiplicativeExpr(i).start.column)
             next_expression = self.visitMultiplicativeExpr(ctx.multiplicativeExpr(i + 1))
             if not isinstance(next_expression, BaseType):
-                raise Exception("Attemping to perform additive operation on non numerical type")
+                raise CompileError("Attemping to perform additive operation on non numerical type", ctx.multiplicativeExpr(i + 1).start.line, ctx.multiplicativeExpr(i + 1).start.column)
             if expression.width != next_expression.width:
-                raise Exception("Attemping to perform additive operation on expressions of differing width")
+                raise CompileError("Attemping to perform additive operation on expressions of differing width", ctx.multiplicativeExpr(i).start.line, ctx.multiplicativeExpr(i).start.column)
 
             operation = ctx.additiveOp(i)
             width = expression.width
@@ -715,10 +782,10 @@ class CodeGenerator(StornVisitor):
         unary_count = (ctx.getChildCount() - 1) // 2
         for i in range(unary_count):
             if not (isinstance(expression, BaseType) and expression.width == 8):
-                raise Exception("Attempting to multiply expression not of type [8]")
+                raise CompileError("Attempting to multiply expression not of type [8]", ctx.unaryExpr(i).start.line, ctx.unaryExpr(i).start.column)
             next_expression = self.visitUnaryExpr(ctx.unaryExpr(i + 1))
             if not (isinstance(next_expression, BaseType) and next_expression.width == 8):
-                raise Exception("Attempting to multiply expression not of type [8]")
+                raise CompileError("Attempting to multiply expression not of type [8]", ctx.unaryExpr(i + 1).start.line, ctx.unaryExpr(i + 1).start.column)
 
             self.instructions += [
                 "pop l", # multiplier
@@ -757,7 +824,7 @@ class CodeGenerator(StornVisitor):
 
         if ctx.MINUS() or ctx.NOT():
             if not isinstance(expression, BaseType):
-                raise Exception("Attemping to perform unary operation on non numerical type")
+                raise CompileError("Attemping to perform unary operation on non numerical type", ctx.MINUS().start.line, ctx.MINUS().start.column)
 
             width = expression.width
             if ctx.MINUS():
@@ -797,30 +864,34 @@ class CodeGenerator(StornVisitor):
                         "psh a",
                         "psh b",
                     ]
-        elif ctx.width():
-            if not isinstance(expression, BaseType):
-                raise Exception("Attemping to perform unary operation on non numerical type")
+        elif ctx.type_():
+            type_ = self.visitType(ctx.type_())
+            if isinstance(expression, BaseType) and isinstance(type_, BaseType):
+                current_width = expression.width
+                new_width = type_.width
 
-            current_width = expression.width
-            new_width = int(ctx.width().getText())
+                if current_width == new_width:
+                    return expression
 
-            if current_width == new_width:
-                return expression
+                if new_width == 8: # narrowing
+                    self.instructions += [
+                        "pop a",
+                        "pop b",
+                        "psh a",
+                    ]
+                elif new_width == 16: # promotion
+                    self.instructions += [
+                        "pop a",
+                        "psh 0",
+                        "psh a",
+                    ]
 
-            if new_width == 8: # narrowing
-                self.instructions += [
-                    "pop a",
-                    "pop b",
-                    "psh a",
-                ]
-            elif new_width == 16: # promotion
-                self.instructions += [
-                    "pop a",
-                    "psh 0",
-                    "psh a",
-                ]
+                return BaseType(new_width)
 
-            return BaseType(new_width)
+            if expression.size != type_.size:
+                raise CompileError("Attempting to cast non numeric type to different size", ctx.type_().start.line, ctx.type_().start.column)
+
+            return type_
 
         return expression
 
@@ -828,53 +899,8 @@ class CodeGenerator(StornVisitor):
         if ctx.expression():
             return self.visitExpression(ctx.expression())
         elif ctx.call():
-            routine_name = ctx.call().NAME().getText()
-            if routine_name in self.routine_table:
-                routine = self.routine_table[routine_name]
-            else:
-                raise Exception("Reference to unknown routine")
-
-            # Allocate space for return bytes on stack
-            return_type = routine.return_type
-            return_size = return_type.size
-            return_size_low = return_size & 0b11111111
-            return_size_high = return_size >> 8
-            self.instructions += [
-                "ldr a spl",
-                f"sub {return_size_low}",
-                "ldr spl a",
-                "ldr a sph",
-                f"sub cc {return_size_high}",
-                "ldr sph a",
-            ]
-
-            parameters = ctx.call().parameters().expression()
-            expected_parameter_types = self.routine_table[routine_name].parameters.values()
-
-            total_parameter_size = 0
-            for parameter, expected_parameter_type in zip(reversed(parameters), reversed(expected_parameter_types)):
-                parameter_type = self.visitExpression(parameter)
-                if parameter_type != expected_parameter_type:
-                    raise Exception("Parameter expression is an inconsistent type with routine expectation")
-                total_parameter_size += parameter_type.size
-
-            self.instructions += [
-                f"cal {routine_name.upper()}",
-            ]
-
-            # Pop parameters
-            param_size_low = total_parameter_size & 0b11111111
-            param_size_high = total_parameter_size >> 8
-            self.instructions +=  [
-                "ldr a spl",
-                f"add {param_size_low}",
-                "ldr spl a",
-                "ldr a sph",
-                f"add cc {param_size_high}",
-                "ldr sph a",
-            ]
-
-            return return_type
+            call_return_type = self.visitCall(ctx.call())
+            return call_return_type
         elif ctx.lvalue():
             lvalue = self.visitLvalue(ctx.lvalue())
 

@@ -44,6 +44,8 @@ statement
         | ifStmt
         | loopStmt
         | breakStmt '.'
+        | continueStmt '.'
+        | call '.'
         | outputStmt '.'
         | returnStmt '.'
         ;
@@ -83,6 +85,10 @@ loopStmt
 
 breakStmt
         : 'break'
+        ;
+
+continueStmt
+        : 'continue'
         ;
 
 outputStmt
@@ -132,8 +138,7 @@ multiplicativeExpr
         ;
 
 unaryExpr
-        : (MINUS | NOT)? primaryExpr
-        | primaryExpr ':' width
+        : (MINUS | NOT | type)? primaryExpr
         ;
 
 primaryExpr
