@@ -7,7 +7,7 @@ with open("tests/storn_test_cases.yaml", "r") as file:
 
 def run_storn_test(program_name):
     program_path = f"tests/storn/{program_name}.stn"
-    assembly_path = "out/test.vtx"
+    assembly_path = f"out/test_storn_{program_name}.vtx"
     rom_path = "roms/test"
     subprocess.run([
         "python",

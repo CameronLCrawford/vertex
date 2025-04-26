@@ -198,7 +198,7 @@ void tick(CPUState *cpu)
         logMessage(LOG_LEVEL_DEBUG, "Incrementing counter register");
         if (++cpu->registers[REG_COUNTER_L] == 0)
         {
-            if (++cpu->registers[REG_COUNTER_H])
+            if (++cpu->registers[REG_COUNTER_H] == 0)
             {
                 logMessage(LOG_LEVEL_ERROR, "Counter overflow");
             };

@@ -160,6 +160,7 @@ class CodeGenerator(StornVisitor):
 
         data_type = DataType(name, fields)
         data_type.calculate_size(self.data_table)
+        data_type.calculate_offset(0)
         self.data_table[name] = data_type
 
         return None
@@ -209,27 +210,27 @@ class CodeGenerator(StornVisitor):
         parameters: Dict[str, Type] = {}
 
         # Tracks the cumulative offset from BP.
-        # Starts at 3 since BP exists on the stack as BPH and BPL and return is two bytes:
+        # Starts at 4 since BP exists on the stack as BPH and BPL and return is two bytes:
         # | 0x0000 |
         # |  ....  |
         # | LOCAL1 | <- SP
         # | LOCAL0 | <- local 0 offset
-        # | BPL    | <- BP points here
-        # | BPH    |
-        # | RETURN | <- return low
-        # | RETURN | <- return high; cumulative offset starts here
+        # | BPL    | <- BP points here (0)
+        # | BPH    | (1)
+        # | RETURN | <- return low (2)
+        # | RETURN | <- return high (3)
+        # | PARAM0 | <- param 0 offset (4)
         # | PARAM0 |
         # | PARAM0 |
-        # | PARAM0 | <- param 0 offset
-        # | PARAM1 | <- param 1 offset
+        # | PARAM1 | <- param 1 offset (4 + PARAM0.size)
         # |  ....  |
         # | 0xFFFF |
-        cumulative_offset = 3
+        cumulative_offset = 4
         for variable in ctx.typedVar():
             name, type_ = self.visitTypedVar(variable)
             type_.calculate_size(self.data_table)
-            cumulative_offset += type_.size
             type_.calculate_offset(cumulative_offset)
+            cumulative_offset += type_.size
             parameters[name] = type_
 
         return parameters
@@ -240,20 +241,29 @@ class CodeGenerator(StornVisitor):
         if not variables:
             return {}, 0
 
-        # Note that cumulative offset is 1 here
-        # in spite of there being no bytes between BP and the local vars.
-        # This is because the pointer points to where the next variable
-        # will be instead of where the base of it will end.
-        cumulative_offset = 1
+        # The cumulative offset starts at zero from BP
+        # and is increased by the size of each variable
+        # routine foo (x: [8], y: [16], z: [8])
+        # | 0x0000 |
+        # |  ....  |
+        # | X      | <- x offset (0 + Z.size + Y.size + X.size)
+        # | Y      | <- y low; y offset (0 + Z.size + Y.size)
+        # | Y      | <- y high
+        # | Z      | <- z offset (0 + Z.size)
+        # | BPL    | <- BP points here
+        # | BPH    |
+        # |  ....  |
+        # | 0xFFFF |
+        cumulative_offset = 0
         for variable in reversed(variables):
             name, type_ = self.visitTypeDeclaration(variable)
             type_.calculate_size(self.data_table)
+            cumulative_offset += type_.size
             type_.calculate_offset(cumulative_offset)
             routine_scope[name] = type_
-            cumulative_offset += type_.size
 
-        size = cumulative_offset - 1
-        return routine_scope, size
+        # Cumulative offset tracks total size
+        return routine_scope, cumulative_offset
 
     def visitStatements(self, ctx: StornParser.StatementsContext):
         statements = ctx.statement()
@@ -272,7 +282,9 @@ class CodeGenerator(StornVisitor):
         if lvalue_type != expression_type:
             raise CompileError("lvalue and expression are of different types", lvalue.start.line, lvalue.start.column)
 
-        # Copy bytes from stack to memory range [<HL>, <HL - size>]
+        # Pop bytes from stack to memory range [HL, HL + (size - 1)]
+        # The top of the stack is the lowest byte of the variable, hence
+        # we pop into HL, pop into HL + 1, pop into HL + 2, etc.
         self.instructions += [
             f"ldr c {expression_type.size}",
             f"L{self.label_count}:",
@@ -283,10 +295,10 @@ class CodeGenerator(StornVisitor):
             "pop a",
             "str m a",
             "ldr a l",
-            "dec",
+            "inc",
             "ldr l a",
             "ldr a h",
-            "dec cc",
+            "inc cc",
             "ldr h a",
             f"jmp L{self.label_count}",
             f"L{self.label_count + 1}:",
@@ -303,7 +315,7 @@ class CodeGenerator(StornVisitor):
         expression_count = (ctx.getChildCount() - 1) // 2
         for i in range(expression_count):
             if not isinstance(lvalue, ArrayType):
-                raise CompileError("Attemping to index non array type", ctx.projectionLvalue().start.line, ctx.projectionLvalue().start.line)
+                raise CompileError("Attempting to index non array type", ctx.projectionLvalue().start.line, ctx.projectionLvalue().start.line)
 
             index = self.visitExpression(ctx.expression(i))
             if not (isinstance(index, BaseType) and index.width == 8):
@@ -312,7 +324,7 @@ class CodeGenerator(StornVisitor):
             size = lvalue.size
 
             # Naive multiplication
-            # HL := HL - index * size
+            # HL := HL + index * size
             self.instructions += [
                 "pop b", # index
                 f"ldr c {size}",
@@ -322,7 +334,7 @@ class CodeGenerator(StornVisitor):
                 "dec",
                 "ldr c a",
                 "ldr a l",
-                "sub b",
+                "add b",
                 "ldr l a",
                 "ldr a h",
                 "dec cc",
@@ -363,13 +375,13 @@ class CodeGenerator(StornVisitor):
             offset_high = offset >> 8
 
             # Compute address of field by its offset from parent address in HL
-            # HL := HL - offset
+            # HL := HL + offset
             self.instructions += [
                 "ldr a l",
-                f"sub {offset_low}",
+                f"add {offset_low}",
                 "ldr l a",
                 "ldr a h",
-                f"sub cc {offset_high}",
+                f"add cc {offset_high}",
                 "ldr h a",
             ]
 
@@ -384,24 +396,30 @@ class CodeGenerator(StornVisitor):
             if not isinstance(lvalue, ReferenceType):
                 raise CompileError("Attempting to dereference non reference type", ctx.primaryLvalue().start.line, ctx.primaryLvalue().start.column)
 
-            # Address of reference is in HL
-            # Need address referenced by said reference in HL
-            # Hence, treat HL as an address and store ram[HL] in HL
+            # Address of reference is in HL; reference is a 2-byte little endian memory address
+            # Need address of object referenced by said reference in HL
+            # Hence, store ram[HL] in HL
             # i.e.:
             # L := ram[HL]
-            # H := ram[HL - 1]
+            # H := ram[HL + 1]
             self.instructions += [
-                "ldr b m",
+                "ldr b m", # L
                 "ldr a l",
-                "dec",
+                "inc",
                 "ldr l a",
                 "ldr a h",
-                "dec cc",
+                "inc cc",
                 "ldr h m",
                 "ldr l b",
             ]
 
-            lvalue = lvalue.type_
+            unresolved_type = lvalue.type_
+            if isinstance(unresolved_type, UnresolvedType):
+                resolved_type = self.data_table[unresolved_type.name].copy()
+                resolved_type.offset = unresolved_type.offset
+                lvalue = resolved_type
+            else:
+                lvalue = unresolved_type
 
         return lvalue
 
@@ -577,9 +595,26 @@ class CodeGenerator(StornVisitor):
             if expression_type != self.current_routine.return_type:
                 raise CompileError("Return type doesn't matched expectation for routine", ctx.expression().start.line, ctx.expression().start.column)
 
-            # Copy expression result from stack to caller-allocated return space on stack
+            # Pop expression result from stack to caller-allocated return space on stack
             # Start of caller-allocated return space is at: BP + 1 (caller BPH) + 2 (return addr) + param size
             # Pop and increment
+            # | 0x0000 |
+            # |  ....  |
+            # | LOCAL1 | <- SP
+            # | LOCAL0 | <- local 0 offset
+            # | BPL    | <- BP points here
+            # | BPH    |
+            # | RETURN | <- return low
+            # | RETURN | <- return high
+            # | PARAM0 | <- param 0 offset
+            # | PARAM0 |
+            # | PARAM0 |
+            # | PARAM1 | <- param 1 offset
+            # | RETVAL | <- return value space highest byte
+            # | RETVAL |
+            # | RETVAL | <- return value space lowest byte
+            # |  ....  |
+            # | 0xFFFF |
             total_parameter_size = sum([
                 param.size
                 for param in self.current_routine.parameters.values()
@@ -904,7 +939,7 @@ class CodeGenerator(StornVisitor):
         elif ctx.lvalue():
             lvalue = self.visitLvalue(ctx.lvalue())
 
-            # Copy bytes from memory range [<HL>, <HL - size>] to stack
+            # Push bytes from memory range [HL, HL + (size - 1)] to stack
             self.instructions += [
                 f"ldr c {lvalue.size}",
                 f"L{self.label_count}:",
@@ -927,7 +962,7 @@ class CodeGenerator(StornVisitor):
 
             return lvalue
         else:
-            constant = ctx.CONSTANT().getText()
+            constant = int(ctx.CONSTANT().getText())
             width = int(ctx.width().getText())
 
             if width == 8:
@@ -938,8 +973,8 @@ class CodeGenerator(StornVisitor):
                 constant_low = constant & 0b11111111
                 constant_high = constant >> 8
                 self.instructions += [
-                    f"psh {constant_low}",
                     f"psh {constant_high}",
+                    f"psh {constant_low}",
                 ]
 
             return BaseType(width)

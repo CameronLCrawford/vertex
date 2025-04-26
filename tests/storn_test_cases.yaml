@@ -20,3 +20,9 @@
   expected_output: "OUTPUT: 120"
 - program: params
   expected_output: "OUTPUT: 200"
+- program: reference
+  expected_output: "OUTPUT: 200"
+- program: reference_16
+  expected_output:
+    - "OUTPUT: 64"
+    - "OUTPUT: 156"

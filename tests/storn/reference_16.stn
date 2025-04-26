@@ -1,0 +1,10 @@
+routine entry () -> [0];
+        x: <[16]>.
+        y: <[16]>.
+{
+        set x = <[16]> 0:16.
+        set $x = 40000:16.
+        set y = <[16]> 0:16.
+        output $y.
+        return.
+}

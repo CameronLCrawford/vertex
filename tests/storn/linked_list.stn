@@ -1,0 +1,28 @@
+data node {
+        value: [8].
+        next: <[node]>.
+}
+
+routine append(current_node: <[node]>, value: [8]) -> [0]
+{
+        loop {
+                if [16]($current_node / next) {
+                        set current_node = $current_node / next.
+                        continue.
+                }
+                set $current_node / next = <[node]>([16]current_node + 3:16).
+                set $($current_node / next) / next = <[node]> 0:16.
+                set $($current_node / next) / value = value.
+                break.
+        }
+        return.
+}
+
+routine entry () -> [0];
+        base_node: <[node]>.
+{
+        set base_node = <[node]> 0:16.
+        set $base_node / next = <[node]> 0:16.
+        !append(base_node, 10:8).
+        return.
+}
