@@ -1,0 +1,4 @@
+routine entry () -> [0] {
+	output 3:16 + 3:16.
+	return.
+}

@@ -468,13 +468,16 @@ class CodeGenerator(StornVisitor):
         jump_label = self.label_count
         self.label_count += 1
 
-        self.instructions += [
-            "pop a",
-            f"jmp zf L{jump_label}"
-        ]
-        if expression.width == 16:
+        if expression.width == 8:
             self.instructions += [
                 "pop a",
+                f"jmp zf L{jump_label}"
+            ]
+        elif expression.width == 16:
+            self.instructions += [
+                "pop b",
+                "pop a",
+                "or b",
                 f"jmp zf L{jump_label}"
             ]
 
@@ -786,26 +789,25 @@ class CodeGenerator(StornVisitor):
 
             operation = ctx.additiveOp(i)
             width = expression.width
-            op_instruction = "add b" if operation.PLUS() else "sub b"
-            op_cc_instruction = "add cc b" if operation.PLUS() else "sub cc b"
+            operation = "add" if operation.PLUS() else "sub"
             if width == 8:
                 self.instructions += [
                     "pop b",
                     "pop a",
-                op_instruction,
+                    f"{operation} b",
                     "psh a",
                 ]
             elif width == 16:
                 self.instructions += [
-                    "pop b",
+                    "pop l",
+                    "pop h",
                     "pop a",
-                op_instruction,
-                    "ldr c a",
+                    f"{operation} l",
+                    "ldr l a",
                     "pop a",
-                    "pop b",
-                op_cc_instruction,
+                    f"{operation} cc h",
                     "psh a",
-                    "psh c",
+                    "psh l",
                 ]
             expression = next_expression
 
@@ -940,7 +942,17 @@ class CodeGenerator(StornVisitor):
             lvalue = self.visitLvalue(ctx.lvalue())
 
             # Push bytes from memory range [HL, HL + (size - 1)] to stack
+            # Note that bytes are pushed in reverse order, starting from HL + (size - 1)
+            offset = lvalue.size - 1
+            offset_low = offset & 0b11111111
+            offset_high = offset >> 8
             self.instructions += [
+                "ldr a l",
+                f"add {offset_low}",
+                "ldr l a",
+                "ldr a h",
+                f"add cc {offset_high}",
+                "ldr h a",
                 f"ldr c {lvalue.size}",
                 f"L{self.label_count}:",
                 "ldr a c",
@@ -950,10 +962,10 @@ class CodeGenerator(StornVisitor):
                 "ldr a m",
                 "psh a",
                 "ldr a l",
-                "inc",
+                "dec",
                 "ldr l a",
                 "ldr a h",
-                "inc cc",
+                "dec cc",
                 "ldr h a",
                 f"jmp L{self.label_count}",
                 f"L{self.label_count + 1}:",

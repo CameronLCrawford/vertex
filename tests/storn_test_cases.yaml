@@ -26,3 +26,7 @@
   expected_output:
     - "OUTPUT: 64"
     - "OUTPUT: 156"
+- program: if_16
+  expected_output: "OUTPUT: 200"
+- program: add_16
+  expected_output: "OUTPUT: 6"

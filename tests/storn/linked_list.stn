@@ -24,5 +24,9 @@ routine entry () -> [0];
         set base_node = <[node]> 0:16.
         set $base_node / next = <[node]> 0:16.
         !append(base_node, 10:8).
+        !append(base_node, 20:8).
+        !append(base_node, 30:8).
+        !append(base_node, 40:8).
+        !append(base_node, 50:8).
         return.
 }
