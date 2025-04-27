@@ -8,6 +8,7 @@ program
 
 declaration
         : data
+        | global
         | routine
         ;
 
@@ -21,6 +22,10 @@ typeDeclaration
 
 typedVar
         : NAME ':' type
+        ;
+
+global
+        : 'global' typeDeclaration
         ;
 
 routine
@@ -146,6 +151,7 @@ primaryExpr
         | call
         | lvalue
         | CONSTANT ':' width
+        | '#' type
         ;
 
 width

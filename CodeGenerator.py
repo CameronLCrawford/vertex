@@ -3,6 +3,10 @@ from storn.StornVisitor import StornVisitor
 from storn.StornParser import StornParser
 import copy
 
+GLOBAL_VAR_BASE = 0
+GLOBAL_VAR_BASE_LOW = GLOBAL_VAR_BASE & 0b11111111
+GLOBAL_VAR_BASE_HIGH = GLOBAL_VAR_BASE >> 8
+
 class CompileError(Exception):
     def __init__(self, message, line=None, column=None):
         self.message = message
@@ -144,6 +148,8 @@ class CodeGenerator(StornVisitor):
     def __init__(self):
         self.instructions: List[str] = ["jmp ENTRY"]
         self.data_table: Dict[str, DataType] = {}
+        self.globals: Dict[str, Type] = {}
+        self.global_offset = 0
         self.routine_table: Dict[str, Routine] = {}
         self.current_routine: Routine = Routine({}, Type(), {}, False)
         self.label_count = 0
@@ -172,6 +178,13 @@ class CodeGenerator(StornVisitor):
         name = ctx.NAME().getText()
         type_ = self.visitType(ctx.type_())
         return name, type_
+
+    def visitGlobal(self, ctx: StornParser.GlobalContext):
+        name, type_ = self.visitTypeDeclaration(ctx.typeDeclaration())
+        type_.calculate_size(self.data_table)
+        type_.calculate_offset(self.global_offset)
+        self.global_offset += type_.size
+        self.globals[name] = type_
 
     # Add the routine to the routine table before
     # compiling statements to enable recursion
@@ -435,6 +448,8 @@ class CodeGenerator(StornVisitor):
             offset_operation = "sub"
         elif variable_name in self.current_routine.parameters:
             variable = self.current_routine.parameters[variable_name]
+        elif variable_name in self.globals:
+            variable = self.globals[variable_name]
         else:
             raise CompileError("Reference to unknown variable", ctx.NAME().start.line, ctx.NAME().start.column)
 
@@ -447,13 +462,20 @@ class CodeGenerator(StornVisitor):
         offset_low = offset & 0b11111111
         offset_high = offset >> 8
 
+        if variable_name in self.globals:
+            base_low = GLOBAL_VAR_BASE_LOW
+            base_high = GLOBAL_VAR_BASE_HIGH
+        else:
+            base_low = "bpl"
+            base_high = "bph"
+
         # Compute address of variable by its offset from BP
         # HL := BP +/- offset
         self.instructions += [
-            "ldr a bpl",
+            f"ldr a {base_low}",
             f"{offset_operation} {offset_low}",
             "ldr l a",
-            "ldr a bph",
+            f"ldr a {base_high}",
             f"{offset_operation} cc {offset_high}",
             "ldr h a",
         ]
@@ -751,24 +773,25 @@ class CodeGenerator(StornVisitor):
                     f"L{self.label_count + 1}:",
                 ]
                 self.label_count += 2
-            elif width == 16:
+            elif width == 16: # TODO: this makes me uncomfortable
                 self.instructions += [
-                    *pop_ops,
+                    pop_ops[0],
+                    "pop l",
+                    pop_ops[1],
                     "sub b",
+                    pop_ops[1],
+                    f"ldr {pop_ops[0][-1]} l",
+                    "sub cc b",
                     f"jmp {flag} L{self.label_count}",
+                    "psh 0",
                     "psh 0",
                     f"jmp L{self.label_count + 1}",
                     f"L{self.label_count}:",
-                    *pop_ops,
-                    "sub b",
-                    f"jmp {flag} L{self.label_count + 2}",
-                    "psh 0",
-                    f"jmp L{self.label_count + 1}",
-                    f"L{self.label_count + 2}:",
                     "psh 1",
+                    "psh 0",
                     f"L{self.label_count + 1}:",
                 ]
-                self.label_count += 3
+                self.label_count += 2
 
             expression = next_expression
 
@@ -973,7 +996,7 @@ class CodeGenerator(StornVisitor):
             self.label_count += 2
 
             return lvalue
-        else:
+        elif ctx.CONSTANT():
             constant = int(ctx.CONSTANT().getText())
             width = int(ctx.width().getText())
 
@@ -990,6 +1013,19 @@ class CodeGenerator(StornVisitor):
                 ]
 
             return BaseType(width)
+        elif ctx.type_():
+            type_ = self.visitType(ctx.type_())
+            type_.calculate_size(self.data_table)
+
+            size = type_.size
+            size_low = size & 0b11111111
+            size_high = size >> 8
+            self.instructions += [
+                f"psh {size_high}",
+                f"psh {size_low}",
+            ]
+
+            return BaseType(16)
 
     def visitType(self, ctx: StornParser.TypeContext) -> Type:
         if ctx.getChildCount() == 1: # Base type

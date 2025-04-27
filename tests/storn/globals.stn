@@ -1,0 +1,17 @@
+data foo {
+        a: [16].
+        b: [8].
+}
+
+global x: [8].
+global y: [foo].
+global z: <[foo]>.
+
+routine entry () -> [0]
+{
+        set x = 10:8.
+        set y / b = 180:8.
+        set $z / b = 10:8.
+        output x + (y / b) + ($z / b).
+        return.
+}

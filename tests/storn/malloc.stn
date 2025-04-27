@@ -1,0 +1,60 @@
+data block {
+        size: [16].
+        next: <[block]>.
+}
+
+global free_list: <[block]>.
+
+' size is the number of bytes requested by the caller
+routine malloc(size: [16]) -> <[0]>;
+        current_block: <[block]>.
+        prev_block: <[block]>.
+        allocated: <[0]>.
+        split: <[block]>.
+        free_size: [16].
+{
+        set current_block = free_list.
+        set prev_block = <[block]> 0:16.
+        if $free_list / size < size + #[block] {
+                return allocated.
+        }
+        loop {
+                if $current_block / size >= size {
+                        set allocated = <[0]> ([16]current_block + #[block]).
+                        if [16]prev_block { ' ie. not at front of freelist
+                                if $current_block / size = size {
+                                        set $prev_block / next = $current_block / next.
+                                        set $current_block / size = size.
+                                        set $prev_block / size = $prev_block / size - size.
+                                        break.
+                                }
+                                set split = <[block]> ([16]current_block + size + #[block]).
+                                set $split / size = $current_block / size - size - #[block].
+                                set $split / next = $current_block / next.
+                                set $prev_block / next = split.
+                                set $current_block / size = size.
+                                set $prev_block / size = $prev_block / size - size.
+                                break.
+                        }
+                        set free_size = $free_list / size.
+                        set $free_list / size = size.
+                        set free_list = <[block]> ([16]free_list + size + #[block]).
+                        set $free_list / size = free_size - size - #[block].
+                        set $free_list / next = $current_block / next.
+                        break.
+                }
+                set prev_block = current_block.
+                set current_block = $current_block / next.
+        }
+        return allocated.
+}
+
+routine entry () -> [0]
+{
+        set free_list = <[block]> 256:16.
+        set $free_list / next = <[block]> 0:16.
+        set $free_list / size = 100:16.
+        !malloc(20:16).
+        !malloc(20:16).
+        return.
+}

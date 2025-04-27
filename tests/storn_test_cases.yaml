@@ -30,3 +30,7 @@
   expected_output: "OUTPUT: 200"
 - program: add_16
   expected_output: "OUTPUT: 6"
+- program: globals
+  expected_output: "OUTPUT: 200"
+- program: size
+  expected_output: "OUTPUT: 20"
