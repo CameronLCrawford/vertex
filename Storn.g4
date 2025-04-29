@@ -56,7 +56,7 @@ statement
         ;
 
 setStmt
-        : 'set' lvalue '=' expression
+        : lvalue '=' expression
         ;
 
 lvalue
@@ -81,7 +81,15 @@ primaryLvalue
         ;
 
 ifStmt
-        : 'if' expression statements
+        : 'if' expression statements elifStmt* elseStmt?
+        ;
+
+elifStmt
+        : 'elif' expression statements
+        ;
+
+elseStmt
+        : 'else' statements
         ;
 
 loopStmt

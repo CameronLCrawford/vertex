@@ -7,12 +7,12 @@ routine append(current_node: <[node]>, value: [8]) -> [0]
 {
         loop {
                 if [16]($current_node / next) {
-                        set current_node = $current_node / next.
+                        current_node = $current_node / next.
                         continue.
                 }
-                set $current_node / next = <[node]>([16]current_node + 3:16).
-                set $($current_node / next) / next = <[node]> 0:16.
-                set $($current_node / next) / value = value.
+                $current_node / next = <[node]>([16]current_node + 3:16).
+                $($current_node / next) / next = <[node]> 0:16.
+                $($current_node / next) / value = value.
                 break.
         }
         return.
@@ -21,8 +21,8 @@ routine append(current_node: <[node]>, value: [8]) -> [0]
 routine entry () -> [0];
         base_node: <[node]>.
 {
-        set base_node = <[node]> 0:16.
-        set $base_node / next = <[node]> 0:16.
+        base_node = <[node]> 0:16.
+        $base_node / next = <[node]> 0:16.
         !append(base_node, 10:8).
         !append(base_node, 20:8).
         !append(base_node, 30:8).

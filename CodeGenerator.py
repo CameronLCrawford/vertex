@@ -487,28 +487,63 @@ class CodeGenerator(StornVisitor):
         if not isinstance(expression, BaseType):
             raise CompileError("If condition expression evaluates to non numeric type", ctx.expression().start.line, ctx.expression().start.column)
 
-        jump_label = self.label_count
-        self.label_count += 1
+        fail_label = self.label_count
+        final_label = self.label_count + 1
+        self.label_count += 2
 
         if expression.width == 8:
             self.instructions += [
                 "pop a",
-                f"jmp zf L{jump_label}"
+                f"jmp zf L{fail_label}"
             ]
         elif expression.width == 16:
             self.instructions += [
                 "pop b",
                 "pop a",
                 "or b",
-                f"jmp zf L{jump_label}"
+                f"jmp zf L{fail_label}"
             ]
 
         self.visitStatements(ctx.statements())
+        self.instructions += [
+            f"jmp L{final_label}",
+            f"L{fail_label}:",
+        ]
+
+        if ctx.elifStmt():
+            for elif_stmt in ctx.elifStmt():
+                expression = self.visitExpression(elif_stmt.expression())
+                if not isinstance(expression, BaseType):
+                    raise CompileError("Elif condition expression evaluates to non numeric type", ctx.expression().start.line, ctx.expression().start.column)
+
+                fail_label = self.label_count
+                self.label_count += 1
+
+                if expression.width == 8:
+                    self.instructions += [
+                        "pop a",
+                        f"jmp zf L{fail_label}"
+                    ]
+                elif expression.width == 16:
+                    self.instructions += [
+                        "pop b",
+                        "pop a",
+                        "or b",
+                        f"jmp zf L{fail_label}"
+                    ]
+
+                self.visitStatements(elif_stmt.statements())
+                self.instructions += [
+                    f"jmp L{final_label}",
+                    f"L{fail_label}:",
+                ]
+
+        if ctx.elseStmt():
+            self.visitStatements(ctx.elseStmt().statements())
 
         self.instructions += [
-            f"L{jump_label}:",
+            f"L{final_label}:",
         ]
-        self.label_count += 1
 
     def visitLoopStmt(self, ctx: StornParser.LoopStmtContext):
         start_label = self.label_count

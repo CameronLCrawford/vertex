@@ -2,14 +2,14 @@ routine entry () -> [0];
         i: [8].
         x: [8].
 {
-        set i = 0:8.
-        set x = 0:8.
+        i = 0:8.
+        x = 0:8.
         loop {
                 if i = 100:8 {
                         break.
                 }
-                set i = i + 1:8.
-                set x = x + 2:8.
+                i = i + 1:8.
+                x = x + 2:8.
         }
         output x.
         return.

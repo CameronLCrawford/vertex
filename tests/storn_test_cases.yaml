@@ -34,3 +34,7 @@
   expected_output: "OUTPUT: 200"
 - program: size
   expected_output: "OUTPUT: 20"
+- program: elif
+  expected_output: "OUTPUT: 200"
+- program: else
+  expected_output: "OUTPUT: 200"

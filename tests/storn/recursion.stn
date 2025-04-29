@@ -8,7 +8,7 @@ routine foo (x: [8]) -> [8] {
 routine entry () -> [0];
         y: [8].
 {
-        set y = !foo(220:8).
+        y = !foo(220:8).
         output y.
         return.
 }

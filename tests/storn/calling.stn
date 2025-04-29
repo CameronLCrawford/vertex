@@ -1,7 +1,7 @@
 routine foo () -> [0];
         x: [8].
 {
-        set x = 200:8.
+        x = 200:8.
         output x.
         return.
 }
@@ -9,6 +9,6 @@ routine foo () -> [0];
 routine entry () -> [0];
         y: [0].
 {
-        set y = !foo().
+        y = !foo().
         return.
 }

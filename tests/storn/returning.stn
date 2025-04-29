@@ -5,7 +5,7 @@ routine foo () -> [8] {
 routine bar () -> [8];
         x: [8].
 {
-        set x = 100:8.
+        x = 100:8.
         return x.
 }
 

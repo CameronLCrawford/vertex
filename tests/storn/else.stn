@@ -1,0 +1,9 @@
+routine entry() -> [0]
+{
+        if 0:8 {
+                output 10:8.
+        } else {
+                output 200:8.
+        }
+        return.
+}

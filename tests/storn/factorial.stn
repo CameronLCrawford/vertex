@@ -11,7 +11,7 @@ routine factorial (n: [8]) -> [8] {
 routine entry () -> [0];
         result: [8].
 {
-        set result = !factorial(5:8).
+        result = !factorial(5:8).
         output result.
         return.
 }
