@@ -376,7 +376,7 @@ class CodeGenerator(StornVisitor):
 
             field_type = lvalue.fields[field_name]
             if not field_type:
-                raise CompileError("Attemping to project unknown field", ctx.NAME(i).start.line, ctx.NAME(i).start.column)
+                raise CompileError("Attempting to project unknown field", ctx.NAME(i).start.line, ctx.NAME(i).start.column)
 
             if isinstance(field_type, UnresolvedType):
                 # Don't need to recalculate size or offset
@@ -514,7 +514,7 @@ class CodeGenerator(StornVisitor):
             for elif_stmt in ctx.elifStmt():
                 expression = self.visitExpression(elif_stmt.expression())
                 if not isinstance(expression, BaseType):
-                    raise CompileError("Elif condition expression evaluates to non numeric type", ctx.expression().start.line, ctx.expression().start.column)
+                    raise CompileError("Elif condition expression evaluates to non numeric type", elif_stmt.expression().start.line, elif_stmt.expression().start.column)
 
                 fail_label = self.label_count
                 self.label_count += 1
@@ -768,12 +768,12 @@ class CodeGenerator(StornVisitor):
         additive_count = (ctx.getChildCount() - 1) // 2
         for i in range(additive_count):
             if not isinstance(expression, BaseType):
-                raise CompileError("Attemping to perform comparative operation on non numerical type", ctx.additiveExpr(i).start.line, ctx.additiveExpr(i).start.column)
+                raise CompileError("Attempting to perform comparative operation on non numerical type", ctx.additiveExpr(i).start.line, ctx.additiveExpr(i).start.column)
             next_expression = self.visitAdditiveExpr(ctx.additiveExpr(i + 1))
             if not isinstance(next_expression, BaseType):
-                raise CompileError("Attemping to perform comparative operation on non numerical type", ctx.additiveExpr(i + 1).start.line, ctx.additiveExpr(i + 1).start.column)
+                raise CompileError("Attempting to perform comparative operation on non numerical type", ctx.additiveExpr(i + 1).start.line, ctx.additiveExpr(i + 1).start.column)
             if expression.width != next_expression.width:
-                raise CompileError("Attemping to perform comparative operation on expressions of differing width", ctx.comparativeOp(i).start.line, ctx.comparativeOp(i).start.column)
+                raise CompileError("Attempting to perform comparative operation on expressions of differing width", ctx.comparativeOp(i).start.line, ctx.comparativeOp(i).start.column)
 
             operation = ctx.comparativeOp(i)
             width = expression.width
@@ -838,12 +838,12 @@ class CodeGenerator(StornVisitor):
         multiplicative_count = (ctx.getChildCount() - 1) // 2
         for i in range(multiplicative_count):
             if not isinstance(expression, BaseType):
-                raise CompileError("Attemping to perform additive operation on non numerical type", ctx.multiplicativeExpr(i).start.line, ctx.multiplicativeExpr(i).start.column)
+                raise CompileError("Attempting to perform additive operation on non numerical type", ctx.multiplicativeExpr(i).start.line, ctx.multiplicativeExpr(i).start.column)
             next_expression = self.visitMultiplicativeExpr(ctx.multiplicativeExpr(i + 1))
             if not isinstance(next_expression, BaseType):
-                raise CompileError("Attemping to perform additive operation on non numerical type", ctx.multiplicativeExpr(i + 1).start.line, ctx.multiplicativeExpr(i + 1).start.column)
+                raise CompileError("Attempting to perform additive operation on non numerical type", ctx.multiplicativeExpr(i + 1).start.line, ctx.multiplicativeExpr(i + 1).start.column)
             if expression.width != next_expression.width:
-                raise CompileError("Attemping to perform additive operation on expressions of differing width", ctx.multiplicativeExpr(i).start.line, ctx.multiplicativeExpr(i).start.column)
+                raise CompileError("Attempting to perform additive operation on expressions of differing width", ctx.multiplicativeExpr(i).start.line, ctx.multiplicativeExpr(i).start.column)
 
             operation = ctx.additiveOp(i)
             width = expression.width
@@ -919,7 +919,7 @@ class CodeGenerator(StornVisitor):
 
         if ctx.MINUS() or ctx.NOT():
             if not isinstance(expression, BaseType):
-                raise CompileError("Attemping to perform unary operation on non numerical type", ctx.MINUS().start.line, ctx.MINUS().start.column)
+                raise CompileError("Attempting to perform unary operation on non numerical type", ctx.MINUS().start.line, ctx.MINUS().start.column)
 
             width = expression.width
             if ctx.MINUS():

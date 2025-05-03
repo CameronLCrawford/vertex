@@ -24,23 +24,21 @@ routine malloc(size: [16]) -> <[0]>;
                         if [16]prev_block { ' ie. not at front of freelist
                                 if $current_block / size = size {
                                         $prev_block / next = $current_block / next.
-                                        $current_block / size = size.
-                                        $prev_block / size = $prev_block / size - size.
-                                        break.
+                                } else {
+                                        split = <[block]> ([16]current_block + size + #[block]).
+                                        $split / size = $current_block / size - size - #[block].
+                                        $split / next = $current_block / next.
+                                        $prev_block / next = split.
                                 }
-                                split = <[block]> ([16]current_block + size + #[block]).
-                                $split / size = $current_block / size - size - #[block].
-                                $split / next = $current_block / next.
-                                $prev_block / next = split.
                                 $current_block / size = size.
                                 $prev_block / size = $prev_block / size - size.
-                                break.
+                        } else {
+                                free_size = $free_list / size.
+                                $free_list / size = size.
+                                free_list = <[block]> ([16]free_list + size + #[block]).
+                                $free_list / size = free_size - size - #[block].
+                                $free_list / next = $current_block / next.
                         }
-                        free_size = $free_list / size.
-                        $free_list / size = size.
-                        free_list = <[block]> ([16]free_list + size + #[block]).
-                        $free_list / size = free_size - size - #[block].
-                        $free_list / next = $current_block / next.
                         break.
                 }
                 prev_block = current_block.
@@ -49,12 +47,73 @@ routine malloc(size: [16]) -> <[0]>;
         return allocated.
 }
 
-routine entry () -> [0]
+routine free(ref: <[0]>) -> [0];
+        returned: <[block]>.
+        current_block: <[block]>.
+{
+        returned = <[block]>([16]ref - #[block]).
+        current_block = free_list.
+        if [16]ref < [16]free_list { ' before head of free list
+                $returned / next = free_list.
+                free_list = returned.
+
+                if [16]$returned / next = [16]returned + $returned / size + #[block] {
+                        $returned / size = $returned / size + $($returned / next) / size + #[block].
+                        $returned / next = $($returned / next) / next.
+                }
+        } elif [16]$current_block / next { ' in the middle of the free list
+                loop {
+                        if [16]($current_block / next) < [16]ref {
+                                continue.
+                        } else {
+                                break.
+                        }
+                        current_block = $current_block / next.
+                }
+                if [16]returned = [16]current_block + $current_block / size + #[block] {
+                        $current_block / size = [16]$current_block / size + [16]$returned / size + #[block].
+                        if [16]$current_block / next = [16]current_block + [16]$current_block / size + #[block] {
+                                $current_block / size = $($current_block / next) / size + #[block].
+                                $current_block / next = $($current_block / next) / next.
+                        }
+                        return.
+                }
+
+                $returned / next = $current_block / next.
+                $current_block / next = returned.
+
+                if [16]$returned / next = [16]returned + $returned / size + #[block] {
+                        $returned / size = [16]$returned / size + [16]$($returned / next) / size.
+                        $returned / next = $($returned / next) / next.
+                }
+        } else { ' free list is single element
+                $free_list / next = returned.
+                $returned / next = <[block]>0:16.
+
+                if [16]$free_list / next = [16]free_list + [16]$free_list / size + #[block] {
+                        $free_list / size = $free_list / size + #[block].
+                        $free_list / next = <[block]>0:16.
+                }
+        }
+        return.
+}
+
+routine entry () -> [0];
+        x: <[0]>.
+        y: <[0]>.
 {
         free_list = <[block]> 256:16.
         $free_list / next = <[block]> 0:16.
         $free_list / size = 100:16.
-        !malloc(20:16).
-        !malloc(20:16).
+        output free_list.
+        output $free_list / size.
+        x = !malloc(20:16).
+        y = !malloc(20:16).
+        output free_list.
+        output $free_list / size.
+        !free(y).
+        !free(x).
+        output free_list.
+        output $free_list / size.
         return.
 }
