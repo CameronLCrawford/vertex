@@ -1061,6 +1061,8 @@ class CodeGenerator(StornVisitor):
             ]
 
             return BaseType(16)
+        else:
+            raise Exception("Unknown primary expression type")
 
     def visitType(self, ctx: StornParser.TypeContext) -> Type:
         if ctx.getChildCount() == 1: # Base type

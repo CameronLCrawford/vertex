@@ -3,11 +3,11 @@
  O0, O1, O2, O3,        # Register output
  A0, A1, A2, A3,        # Accumulator
  CNI, ADI, STI, STD,    # Counter signals
- MAC, MAS, MAH,         # Direct moves
+ MAC, MAS, MAH, MCI,    # Direct moves
  F1, F0, FI,            # Flags
  RI, RO,                # Memory
- RST, OUT, HLT          # Control and output
-) = (2**i for i in range(27))
+ RST, IEN, OUT, HLT     # Control and output
+) = (2**i for i in range(29))
 
 # Register in codes
 AI      =   I0
@@ -94,6 +94,19 @@ instructions: list[Instruction] = [
     Instruction(
         "NOP",
         []
+    ),
+
+    ### INTERRUPT ###
+    # Define this here so the address is known by CPU
+    # and unlikely to change. Not exposed in assembly API
+    Instruction(
+        "INTCAL",
+        [STD | MAS, CNHO | RI, STD | MAS, CNLO | RI, MCI],
+    ),
+    # This is exposed in assembly API
+    Instruction(
+        "INTRET",
+        [IEN | MAS, STI | CNLI | RO, MAS, STI | CNHI | RO, RST],
     ),
 
     ### ALU ###
@@ -345,12 +358,16 @@ instructions: list[Instruction] = [
 
     ### MISC ###
     Instruction(
+        "IEN",
+        [IEN, RST | CNI],
+    ),
+    Instruction(
         "OUT",
         [AO | OUT, RST | CNI],
     ),
     Instruction(
         "HLT",
-        [HLT, RST | CNI],
+        [HLT],
     ),
 ]
 

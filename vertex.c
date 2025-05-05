@@ -10,7 +10,10 @@
 
 #define CONTROL_ROM_BYTES 65536
 #define RAM_SIZE 65536
-#define SHM_FILE "/tmp/vtx_shm"
+#define MAX_PERIPHERAL_COUNT 8
+#define INTCAL 1 // Interrupt call instruction
+#define RAM_SHM_FILENAME "/tmp/vtx_ram_shm"
+#define INTERRUPT_SHM_FILENAME "/tmp/vtx_interrupt_shm"
 
 typedef enum
 {
@@ -27,7 +30,7 @@ typedef enum
     CTRL_COUNTER_INC, CTRL_ADDRESS_INC, CTRL_STACK_INC, CTRL_STACK_DEC,
 
     // Direct moves
-    CTRL_MOVE_ADDRESS_COUNTER, CTRL_MOVE_ADDRESS_STACK, CTRL_MOVE_ADDRESS_HL,
+    CTRL_MOVE_ADDRESS_COUNTER, CTRL_MOVE_ADDRESS_STACK, CTRL_MOVE_ADDRESS_HL, CTRL_MOVE_COUNTER_INTERRUPT,
 
     // Flags and addressing
     CTRL_FLAG_OUT1, CTRL_FLAG_OUT0, CTRL_FLAG_IN,
@@ -36,7 +39,7 @@ typedef enum
     CTRL_RAM_IN, CTRL_RAM_OUT,
 
     // Control signals
-    CTRL_RESET_MICRO_TICK, CTRL_OUT, CTRL_HALT
+    CTRL_RESET_MICRO_TICK, CTRL_INTERRUPT_ENABLE, CTRL_OUT, CTRL_HALT
 } Control;
 
 typedef enum
@@ -99,13 +102,21 @@ typedef enum
 
 typedef struct
 {
-    uint8_t     dataBus;
-    uint32_t    controlBus;
-    uint8_t     registers[16];
-    uint8_t     flags;                      // only three flag bits used
-    uint8_t     microinstructionCounter;    // only four counter bits used
-    uint8_t     *ram;                       // dynamically-allocated
-    uint32_t    *controlROM;                // dynamically-allocated
+    uint8_t     enabled;
+    uint16_t    handlerAddress;
+    uint8_t     raises[MAX_PERIPHERAL_COUNT];
+} InterruptState;
+
+typedef struct
+{
+    uint8_t                 dataBus;
+    uint32_t                controlBus;
+    uint8_t                 registers[16];
+    uint8_t                 flags;                      // only three flag bits used
+    uint8_t                 microinstructionCounter;    // only four counter bits used
+    volatile uint8_t        *ram;
+    uint32_t                *controlROM;
+    volatile InterruptState *interruptState;
 } CPUState;
 
 typedef enum
@@ -262,6 +273,12 @@ void tick(CPUState *cpu)
             break;
     }
 
+    // Check for interrupt enable
+    if ((cpu->controlBus >> CTRL_INTERRUPT_ENABLE) & 0b1)
+    {
+        cpu->interruptState->enabled = 1;
+    }
+
     // Handle RAM out
     if ((cpu->controlBus >> CTRL_RAM_OUT) & 0b1)
     {
@@ -402,6 +419,12 @@ void tock(CPUState *cpu)
         cpu->registers[REG_ADDRESS_H] = cpu->registers[REG_H];
         cpu->registers[REG_ADDRESS_L] = cpu->registers[REG_L];
     }
+    if ((cpu->controlBus >> CTRL_MOVE_COUNTER_INTERRUPT) & 0b1)
+    {
+        logMessage(LOG_LEVEL_DEBUG, "Move counter interrupt");
+        cpu->registers[REG_COUNTER_H] = cpu->interruptState->handlerAddress >> 8;
+        cpu->registers[REG_COUNTER_L] = cpu->interruptState->handlerAddress;
+    }
 
     // Handle RAM in
     if ((cpu->controlBus >> CTRL_RAM_IN) & 0b1)
@@ -415,7 +438,8 @@ void tock(CPUState *cpu)
     }
 
     // Handle status in
-    if ((cpu->controlBus >> CTRL_FLAG_IN) & 0b1) {
+    if ((cpu->controlBus >> CTRL_FLAG_IN) & 0b1)
+    {
         cpu->flags = cpu->dataBus;
         logMessage(LOG_LEVEL_DEBUG, "Flags in new flags value: %d", cpu->flags);
     }
@@ -425,6 +449,21 @@ void tock(CPUState *cpu)
     {
         cpu->microinstructionCounter = 0;
         logMessage(LOG_LEVEL_DEBUG, "Reset microtick");
+
+        // Handle interrupts on beginning of new instruction
+        if (cpu->interruptState->enabled)
+        {
+            for (int peripheral = 0; peripheral < MAX_PERIPHERAL_COUNT; peripheral++)
+            {
+                if (cpu->interruptState->raises[peripheral])
+                {
+                    logMessage(LOG_LEVEL_DEBUG, "Interrupt raised by peripheral %d", peripheral);
+                    cpu->registers[REG_INSTRUCTION] = INTCAL;
+                    cpu->interruptState->raises[peripheral] = 0;
+                    cpu->interruptState->enabled = 0;
+                }
+            }
+        }
     }
 
     // Output to STDOUT
@@ -475,32 +514,53 @@ int main(int argc, char **argv)
     CPUState cpu = {0};
 
     // Connect to mmap RAM
-    int shm_fd = open(SHM_FILE, O_RDWR | O_CREAT, 0666);
-    if (shm_fd < 0)
+    int ram_shm_fd = open(RAM_SHM_FILENAME, O_RDWR | O_CREAT, 0666);
+    if (ram_shm_fd < 0)
     {
-        logMessage(LOG_LEVEL_ERROR, "Unable to open shared memory file");
+        logMessage(LOG_LEVEL_ERROR, "Unable to open RAM shared memory file");
         return 1;
     }
-    if (ftruncate(shm_fd, RAM_SIZE) < 0)
+    if (ftruncate(ram_shm_fd, RAM_SIZE) < 0)
     {
         logMessage(LOG_LEVEL_ERROR, "Shared memory file different size to program ROM");
-        close(shm_fd);
+        close(ram_shm_fd);
         return 1;
     }
-    cpu.ram = mmap(NULL, RAM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+    cpu.ram = mmap(NULL, RAM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, ram_shm_fd, 0);
     if (cpu.ram == MAP_FAILED)
     {
-        logMessage(LOG_LEVEL_ERROR, "Map failed");
-        close(shm_fd);
+        logMessage(LOG_LEVEL_ERROR, "RAM memory map failed");
+        close(ram_shm_fd);
         return 1;
     }
-    close(shm_fd);
+    close(ram_shm_fd);
+
+    // Connect to mmap interrupt array
+    int interrupt_shm_fd = open(INTERRUPT_SHM_FILENAME, O_RDWR | O_CREAT, 0666);
+    if (interrupt_shm_fd < 0)
+    {
+        logMessage(LOG_LEVEL_ERROR, "Unable to open interrupt shared memory file");
+        return 1;
+    }
+    if (ftruncate(interrupt_shm_fd, sizeof(InterruptState)) < 0)
+    {
+        logMessage(LOG_LEVEL_ERROR, "Shared memory file different size to interrupt state size");
+        close(interrupt_shm_fd);
+        return 1;
+    }
+    cpu.interruptState = mmap(NULL, sizeof(InterruptState), PROT_READ | PROT_WRITE, MAP_SHARED, interrupt_shm_fd, 0);
+    if (cpu.interruptState == MAP_FAILED)
+    {
+        logMessage(LOG_LEVEL_ERROR, "Interrupt state memory map failed");
+        close(interrupt_shm_fd);
+        return 1;
+    }
 
     cpu.controlROM = (uint32_t *)malloc(sizeof(uint32_t) * CONTROL_ROM_BYTES);
     if (!cpu.controlROM)
     {
         logMessage(LOG_LEVEL_ERROR, "Unable to allocate control ROM");
-        munmap(cpu.ram, RAM_SIZE);
+        munmap((void *)cpu.ram, RAM_SIZE);
         return 1;
     }
 
@@ -543,7 +603,7 @@ int main(int argc, char **argv)
     fseek(program_file, 0, SEEK_END);
     size_t programSize = ftell(program_file);
     fseek(program_file, 0, SEEK_SET);
-    size_t programBytesRead = fread(cpu.ram + RAM_SIZE - programSize, sizeof(uint8_t), programSize, program_file);
+    size_t programBytesRead = fread((uint8_t *)cpu.ram + RAM_SIZE - programSize, sizeof(uint8_t), programSize, program_file);
     if (programBytesRead != programSize)
     {
         logMessage(LOG_LEVEL_ERROR, "Program ROM file read error");
@@ -572,13 +632,15 @@ int main(int argc, char **argv)
     executionStage = EXEC_STAGE_HALT;
     logMessage(LOG_LEVEL_INFO, "Program halted.");
 
-    munmap(cpu.ram, RAM_SIZE);
+    munmap((void *)cpu.ram, RAM_SIZE);
+    munmap((void *)cpu.interruptState, sizeof(InterruptState));
     free(cpu.controlROM);
 
     return 0;
 
 ROM_LOAD_ERROR:
-    munmap(cpu.ram, RAM_SIZE);
+    munmap((void *)cpu.ram, RAM_SIZE);
+    munmap((void *)cpu.interruptState, sizeof(InterruptState));
     free(cpu.controlROM);
     return 1;
 }

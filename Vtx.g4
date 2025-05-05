@@ -31,6 +31,7 @@ instruction
         | shiftRight
         | jump
         | call
+        | interruptReturn
         | out
         | halt
         ;
@@ -104,6 +105,10 @@ jump
 
 call
         : 'cal' NAME
+        ;
+
+interruptReturn
+        : 'irt'
         ;
 
 out
