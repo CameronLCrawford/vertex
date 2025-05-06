@@ -5,7 +5,7 @@ from vtx.VtxLexer import VtxLexer
 from vtx.VtxParser import VtxParser
 from Assembler import Assembler
 
-def assemble(assembly_file: str, rom_file: str, debug_file: Optional[str]=None):
+def assemble(assembly_file: str, rom_file: Optional[str]=None, debug_file: Optional[str]=None):
     input = FileStream(assembly_file)
     lexer = VtxLexer(input)
     stream = CommonTokenStream(lexer)
@@ -16,6 +16,8 @@ def assemble(assembly_file: str, rom_file: str, debug_file: Optional[str]=None):
     rom_bytes = []
     for instruction in assembler.instructions:
         rom_bytes.append(instruction)
+    if not rom_file:
+        return bytearray(rom_bytes)
     with open(rom_file, 'wb') as rom:
         rom.write(bytearray(rom_bytes))
     if debug_file:

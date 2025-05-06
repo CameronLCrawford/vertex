@@ -1,5 +1,9 @@
-ldr b 10
-str @0 b
-ldr a @0
+ldr b 9
+str @500 b
+ldr a @500
+inc
+str @500 a
+ldr b @500
+ldr a b
 out
 hlt

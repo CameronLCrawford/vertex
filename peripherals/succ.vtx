@@ -1,0 +1,7 @@
+psh a
+ldr a @500
+inc
+str @500 a
+out
+pop a
+irt

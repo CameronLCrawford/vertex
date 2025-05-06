@@ -117,6 +117,7 @@ typedef struct
     volatile uint8_t        *ram;
     uint32_t                *controlROM;
     volatile InterruptState *interruptState;
+    uint8_t                 raisedPeripheral;
 } CPUState;
 
 typedef enum
@@ -277,6 +278,22 @@ void tick(CPUState *cpu)
     if ((cpu->controlBus >> CTRL_INTERRUPT_ENABLE) & 0b1)
     {
         cpu->interruptState->enabled = 1;
+    }
+
+    // Acknowledge peripheral raises
+    if (cpu->interruptState->enabled)
+    {
+        for (int peripheral = 0; peripheral < MAX_PERIPHERAL_COUNT; peripheral++)
+        {
+            if (cpu->interruptState->raises[peripheral])
+            {
+                logMessage(LOG_LEVEL_DEBUG, "Peripheral %d has been acknowledged", peripheral);
+                cpu->interruptState->raises[peripheral] = 0;
+                cpu->interruptState->enabled = 0;
+                cpu->raisedPeripheral = peripheral;
+                break;
+            }
+        }
     }
 
     // Handle RAM out
@@ -451,17 +468,14 @@ void tock(CPUState *cpu)
         logMessage(LOG_LEVEL_DEBUG, "Reset microtick");
 
         // Handle interrupts on beginning of new instruction
-        if (cpu->interruptState->enabled)
+        if (cpu->raisedPeripheral < MAX_PERIPHERAL_COUNT)
         {
-            for (int peripheral = 0; peripheral < MAX_PERIPHERAL_COUNT; peripheral++)
+            if (cpu->interruptState->raises[cpu->raisedPeripheral])
             {
-                if (cpu->interruptState->raises[peripheral])
-                {
-                    logMessage(LOG_LEVEL_DEBUG, "Interrupt raised by peripheral %d", peripheral);
-                    cpu->registers[REG_INSTRUCTION] = INTCAL;
-                    cpu->interruptState->raises[peripheral] = 0;
-                    cpu->interruptState->enabled = 0;
-                }
+                logMessage(LOG_LEVEL_DEBUG, "Interrupt raised by peripheral %d", cpu->raisedPeripheral);
+                cpu->registers[REG_INSTRUCTION] = INTCAL;
+                cpu->interruptState->raises[cpu->raisedPeripheral] = 0;
+                cpu->raisedPeripheral = MAX_PERIPHERAL_COUNT;
             }
         }
     }
@@ -512,6 +526,7 @@ int main(int argc, char **argv)
 
     // Instantiate CPU
     CPUState cpu = {0};
+    cpu.raisedPeripheral = MAX_PERIPHERAL_COUNT; // This means there's no raised peripheral
 
     // Connect to mmap RAM
     int ram_shm_fd = open(RAM_SHM_FILENAME, O_RDWR | O_CREAT, 0666);
@@ -555,6 +570,7 @@ int main(int argc, char **argv)
         close(interrupt_shm_fd);
         return 1;
     }
+    cpu.interruptState->enabled = 1;
 
     cpu.controlROM = (uint32_t *)malloc(sizeof(uint32_t) * CONTROL_ROM_BYTES);
     if (!cpu.controlROM)

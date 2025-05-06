@@ -243,7 +243,7 @@ class Assembler(VtxVisitor):
         return [instruction_names.index("CAL"), label_name, "<LOW_BYTE>"]
 
     def visitInterruptReturn(self, ctx: VtxParser.InterruptReturnContext):
-        return [instruction_names.index("IRT")]
+        return [instruction_names.index("INTRET")]
 
     def visitOut(self, ctx: VtxParser.OutContext):
         return [instruction_names.index("OUT")]

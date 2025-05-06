@@ -80,7 +80,10 @@ jump_m = [LO | CNLI, HO | CNHI, RST]
 class Instruction():
     def __init__(self, name, microinstructions, scopes=[0, 0, 0]):
         self.name = name
-        self.microinstructions = [MAC, RO | II] + microinstructions
+        if name == "INTCAL":
+            self.microinstructions = microinstructions
+        else:
+            self.microinstructions = [MAC, RO | II] + microinstructions
         # List of three ints, where each is the scope for the respective
         # flag -- [zero, sign, carry].
         # A scope can be -1, 0, or 1:
@@ -101,7 +104,7 @@ instructions: list[Instruction] = [
     # and unlikely to change. Not exposed in assembly API
     Instruction(
         "INTCAL",
-        [STD | MAS, CNHO | RI, STD | MAS, CNLO | RI, MCI],
+        [STD | MAS, CNHO | RI, STD | MAS, CNLO | RI, MCI, MAC, RO | II | RST],
     ),
     # This is exposed in assembly API
     Instruction(
