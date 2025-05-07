@@ -1,7 +1,6 @@
 antlr4-python3-runtime==4.13.2
 click==8.1.7
 exceptiongroup==1.2.2
-graphviz==0.20.3
 iniconfig==2.0.0
 mypy-extensions==1.0.0
 packaging==24.2

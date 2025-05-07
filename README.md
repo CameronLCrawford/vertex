@@ -4,10 +4,10 @@
 For general wisdom, see [here](https://tomassetti.me/antlr-mega-tutorial/).
 For installation, install 4.13.2 from [here](https://www.antlr.org/download.html) and move the downloaded `.jar` to `/usr/local/lib/`.
 
-## Python3 venv
-- `python3 -m venv .venv`
-- `source .venv/bin/activate`
-- `pip install -r requirements.txt`
+## Python
+- I currently use 3.13.3 but have also used 3.9.
+- Requirements are in `requirements.txt`.
+- Note that tkinter (used in the Display peripheral) doesn't come with Python via brew.
 
 ## roms directory
 `mkdir roms`
