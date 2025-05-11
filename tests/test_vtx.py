@@ -9,7 +9,7 @@ def run_vtx_test(program_name):
     program_path = f"tests/vtx/{program_name}.vtx"
     rom_path = "roms/test"
     subprocess.run([
-        "python",
+        "python3",
         "assemble_vtx.py",
         program_path,
         rom_path

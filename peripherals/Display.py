@@ -1,38 +1,38 @@
 import tkinter as tk
 from peripherals.Peripheral import Peripheral
 
-FPS = 60
-SCALE = 3
+BASE_ADDRESS = 8192
+SCALE = 16
+ROWS = 32
+COLS = 32
+FPS = 30
 
 class Display(Peripheral):
     def __init__(self):
-        super().__init__(1, (8192, 16384))
-        self.width = 256
-        self.height = 256
+        super().__init__(1, (BASE_ADDRESS, BASE_ADDRESS + ROWS * COLS // 8))
         self.root = tk.Tk()
-        self.canvas = tk.Canvas(self.root, width=self.width * SCALE, height=self.height * SCALE, bg="black")
+        self.canvas = tk.Canvas(self.root, width=COLS * SCALE, height=ROWS * SCALE, bg="black")
         self.canvas.pack()
-        self.pixels = [[0 for _ in range(self.width)] for _ in range(self.height)]
-        for y in range(self.height):
-            for x in range(self.width):
+        self.pixels = [[0 for _ in range(COLS)] for _ in range(ROWS)]
+        for y in range(ROWS):
+            for x in range(COLS):
                 self.pixels[y][x] = self.canvas.create_rectangle(
                     x * SCALE, y * SCALE, (x + 1) * SCALE, (y + 1) * SCALE,
-                    outline="", fill="white"
+                    outline="", fill="black"
                 )
 
     def init(self):
-        for i in range(8192, 16384):
-            self.write(i, 0)
+        pass
 
     def tick(self):
-        for y in range(self.height):
-            row_base = self.mem_start + (y * (self.width // 8))
-            for x_byte in range(self.width // 8):
+        for y in range(ROWS):
+            row_base = self.mem_start + (y * (COLS // 8))
+            for x_byte in range(COLS // 8):
                 byte = self.read(row_base + x_byte)
                 for bit in range(8):
                     x = x_byte * 8 + bit
                     pixel_state = (byte >> (7 - bit)) & 1
-                    color = "black" if pixel_state else "white"
+                    color = "lawn green" if pixel_state else "black" # looks "retro"
                     self.canvas.itemconfig(self.pixels[y][x], fill=color)
         self.root.update()
 

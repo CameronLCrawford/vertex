@@ -724,37 +724,99 @@ class CodeGenerator(StornVisitor):
         return self.visitLogicalExpr(ctx.logicalExpr())
 
     def visitLogicalExpr(self, ctx: StornParser.LogicalExprContext) -> Type:
-        expression = self.visitComparativeExpr(ctx.comparativeExpr(0))
+        expression = self.visitBitwiseExpr(ctx.bitwiseExpr(0))
 
-        comparative_count = (ctx.getChildCount() - 1) // 2
-        for i in range(comparative_count):
+        bitwise_count = (ctx.getChildCount() - 1) // 2
+        for i in range(bitwise_count):
             if not isinstance(expression, BaseType):
-                raise CompileError("Attempting to perform logical operation on non numerical type", ctx.comparativeExpr(i).start.line, ctx.comparativeExpr(i).start.line)
-            next_expression = self.visitComparativeExpr(ctx.comparativeExpr(i + 1))
+                raise CompileError("Attempting to perform logical operation on non numerical type", ctx.bitwiseExpr(i).start.line, ctx.bitwiseExpr(i).start.line)
+            next_expression = self.visitBitwiseExpr(ctx.bitwiseExpr(i + 1))
             if not isinstance(next_expression, BaseType):
-                raise CompileError("Attempting to perform logical operation on non numerical type", ctx.comparativeExpr(i + 1).start.line, ctx.comparativeExpr(i + 1).start.column)
+                raise CompileError("Attempting to perform logical operation on non numerical type", ctx.bitwiseExpr(i + 1).start.line, ctx.bitwiseExpr(i + 1).start.column)
             if expression.width != next_expression.width:
                 raise CompileError("Attempting to perform logical operation on expressions of differing width", ctx.logicalOp(i).start.line, ctx.logicalOp(i).start.column)
 
             operation = ctx.logicalOp(i)
             width = expression.width
-            op_instruction = "or b" if operation.OR() else "and b"
+            if operation.AND():
+                operation_instruction = "and b"
+            else:
+                operation_instruction = "or b"
+            if width == 8:
+                self.instructions += [
+                    "pop a",
+                    f"jmp nzf L{self.label_count}",
+                    "ldr b a", # ie. ldr b 0
+                    f"jmp L{self.label_count + 1}",
+                    f"L{self.label_count}:",
+                    "ldr b 1",
+                    f"L{self.label_count + 1}:",
+                    "pop a",
+                    f"jmp zf L{self.label_count + 2}",
+                    "ldr a 1",
+                    f"L{self.label_count + 2}:",
+                    operation_instruction,
+                    f"jmp nzf L{self.label_count + 3}",
+                    "psh 0",
+                    f"jmp L{self.label_count + 4}",
+                    f"L{self.label_count + 3}:",
+                    "psh 1",
+                    f"L{self.label_count + 4}:",
+                ]
+                self.label_count += 5
+            elif width == 16: # TODO: implement me!
+                raise CompileError("Logical operations not yet implemented for 16-bit-wide values")
+            expression = next_expression
+
+        return expression
+
+    def visitBitwiseExpr(self, ctx: StornParser.BitwiseExprContext) -> Type:
+        expression = self.visitComparativeExpr(ctx.comparativeExpr(0))
+
+        comparative_count = (ctx.getChildCount() - 1) // 2
+        for i in range(comparative_count):
+            if not isinstance(expression, BaseType):
+                raise CompileError("Attempting to perform bitwise operation on non numerical type", ctx.comparativeExpr(i).start.line, ctx.comparativeExpr(i).start.line)
+            next_expression = self.visitComparativeExpr(ctx.comparativeExpr(i + 1))
+            if not isinstance(next_expression, BaseType):
+                raise CompileError("Attempting to perform bitwise operation on non numerical type", ctx.comparativeExpr(i + 1).start.line, ctx.comparativeExpr(i + 1).start.column)
+            if expression.width != next_expression.width:
+                raise CompileError("Attempting to perform bitwise operation on expressions of differing width", ctx.bitwiseOp(i).start.line, ctx.bitwiseOp(i).start.column)
+
+            operation = ctx.bitwiseOp(i)
+            width = expression.width
+            if operation.DIS():
+                operation_instruction = "or b"
+            elif operation.CON():
+                operation_instruction = "and b"
+            else:
+                operation_instruction = "xor b"
             if width == 8:
                 self.instructions += [
                     "pop b",
                     "pop a",
-                    op_instruction,
+                    operation_instruction,
                     "psh a",
                 ]
             elif width == 16:
+                # for x:16 & y:16,
+                # Stack is:
+                # | Y LOW  | <- top of stack
+                # | Y HIGH |
+                # | X LOW  |
+                # | X HIGH |
+                # and we want to finish with stack like:
+                # | Y LOW & X LOW   | <- top of stack
+                # | Y HIGH & X HIGH |
                 self.instructions += [
-                    "pop a",
                     "pop b",
-                    op_instruction,
+                    "pop c",
+                    "pop a",
+                    operation_instruction,
+                    "ldr b c",
                     "ldr c a",
                     "pop a",
-                    "pop b",
-                    op_instruction,
+                    operation_instruction,
                     "psh a",
                     "psh c",
                 ]
@@ -763,15 +825,15 @@ class CodeGenerator(StornVisitor):
         return expression
 
     def visitComparativeExpr(self, ctx: StornParser.ComparativeExprContext) -> Type:
-        expression = self.visitAdditiveExpr(ctx.additiveExpr(0))
+        expression = self.visitArithmeticExpr(ctx.arithmeticExpr(0))
 
-        additive_count = (ctx.getChildCount() - 1) // 2
-        for i in range(additive_count):
+        arithmetic_count = (ctx.getChildCount() - 1) // 2
+        for i in range(arithmetic_count):
             if not isinstance(expression, BaseType):
-                raise CompileError("Attempting to perform comparative operation on non numerical type", ctx.additiveExpr(i).start.line, ctx.additiveExpr(i).start.column)
-            next_expression = self.visitAdditiveExpr(ctx.additiveExpr(i + 1))
+                raise CompileError("Attempting to perform comparative operation on non numerical type", ctx.arithmeticExpr(i).start.line, ctx.arithmeticExpr(i).start.column)
+            next_expression = self.visitArithmeticExpr(ctx.arithmeticExpr(i + 1))
             if not isinstance(next_expression, BaseType):
-                raise CompileError("Attempting to perform comparative operation on non numerical type", ctx.additiveExpr(i + 1).start.line, ctx.additiveExpr(i + 1).start.column)
+                raise CompileError("Attempting to perform comparative operation on non numerical type", ctx.arithmeticExpr(i + 1).start.line, ctx.arithmeticExpr(i + 1).start.column)
             if expression.width != next_expression.width:
                 raise CompileError("Attempting to perform comparative operation on expressions of differing width", ctx.comparativeOp(i).start.line, ctx.comparativeOp(i).start.column)
 
@@ -808,51 +870,76 @@ class CodeGenerator(StornVisitor):
                     f"L{self.label_count + 1}:",
                 ]
                 self.label_count += 2
-            elif width == 16: # TODO: this makes me uncomfortable
-                self.instructions += [
-                    pop_ops[0],
-                    "pop l",
-                    pop_ops[1],
-                    "sub b",
-                    pop_ops[1],
-                    f"ldr {pop_ops[0][-1]} l",
-                    "sub cc b",
-                    f"jmp {flag} L{self.label_count}",
-                    "psh 0",
-                    "psh 0",
-                    f"jmp L{self.label_count + 1}",
-                    f"L{self.label_count}:",
-                    "psh 1",
-                    "psh 0",
-                    f"L{self.label_count + 1}:",
-                ]
-                self.label_count += 2
+            elif width == 16:
+                if operation.EQ():
+                    # x - y
+                    self.instructions += [
+                        "pop b", # y low
+                        "pop h", # y high
+                        "pop a", # x low
+                        "sub b", # x low - y low
+                        f"jmp nzf L{self.label_count}",
+                        "pop a", # x high
+                        "sub h", # x high - y high
+                        f"jmp zf L{self.label_count + 1}",
+                        f"L{self.label_count}:",
+                        "psh 0",
+                        "psh 0",
+                        f"jmp L{self.label_count + 2}",
+                        f"L{self.label_count + 1}:",
+                        "psh 0",
+                        "psh 1",
+                        f"L{self.label_count + 2}:",
+                    ]
+                    self.label_count += 3
+                else: # TODO: I'd be surprised if this works
+                    self.instructions += [
+                        pop_ops[0],
+                        "pop h",
+                        pop_ops[1],
+                        "sub b",
+                        pop_ops[1],
+                        f"ldr {pop_ops[0][-1]} h",
+                        "sub cc b",
+                        f"jmp {flag} L{self.label_count}",
+                        "psh 0",
+                        "psh 0",
+                        f"jmp L{self.label_count + 1}",
+                        f"L{self.label_count}:",
+                        "psh 0",
+                        "psh 1",
+                        f"L{self.label_count + 1}:",
+                    ]
+                    self.label_count += 2
 
             expression = next_expression
 
         return expression
 
-    def visitAdditiveExpr(self, ctx: StornParser.AdditiveExprContext) -> Type:
-        expression = self.visitMultiplicativeExpr(ctx.multiplicativeExpr(0))
+    def visitArithmeticExpr(self, ctx: StornParser.ArithmeticExprContext) -> Type:
+        expression = self.visitShiftExpr(ctx.shiftExpr(0))
 
-        multiplicative_count = (ctx.getChildCount() - 1) // 2
-        for i in range(multiplicative_count):
+        shift_count = (ctx.getChildCount() - 1) // 2
+        for i in range(shift_count):
             if not isinstance(expression, BaseType):
-                raise CompileError("Attempting to perform additive operation on non numerical type", ctx.multiplicativeExpr(i).start.line, ctx.multiplicativeExpr(i).start.column)
-            next_expression = self.visitMultiplicativeExpr(ctx.multiplicativeExpr(i + 1))
+                raise CompileError("Attempting to perform additive operation on non numerical type", ctx.shiftExpr(i).start.line, ctx.shiftExpr(i).start.column)
+            next_expression = self.visitShiftExpr(ctx.shiftExpr(i + 1))
             if not isinstance(next_expression, BaseType):
-                raise CompileError("Attempting to perform additive operation on non numerical type", ctx.multiplicativeExpr(i + 1).start.line, ctx.multiplicativeExpr(i + 1).start.column)
+                raise CompileError("Attempting to perform additive operation on non numerical type", ctx.shiftExpr(i + 1).start.line, ctx.shiftExpr(i + 1).start.column)
             if expression.width != next_expression.width:
-                raise CompileError("Attempting to perform additive operation on expressions of differing width", ctx.multiplicativeExpr(i).start.line, ctx.multiplicativeExpr(i).start.column)
+                raise CompileError("Attempting to perform additive operation on expressions of differing width", ctx.shiftExpr(i).start.line, ctx.shiftExpr(i).start.column)
 
-            operation = ctx.additiveOp(i)
+            operation = ctx.arithmeticOp(i)
             width = expression.width
-            operation = "add" if operation.PLUS() else "sub"
+            if operation.PLUS():
+                operation_instruction = "add"
+            else:
+                operation_instruction = "sub"
             if width == 8:
                 self.instructions += [
                     "pop b",
                     "pop a",
-                    f"{operation} b",
+                    f"{operation_instruction} b",
                     "psh a",
                 ]
             elif width == 16:
@@ -860,13 +947,58 @@ class CodeGenerator(StornVisitor):
                     "pop l",
                     "pop h",
                     "pop a",
-                    f"{operation} l",
+                    f"{operation_instruction} l",
                     "ldr l a",
                     "pop a",
-                    f"{operation} cc h",
+                    f"{operation_instruction} cc h",
                     "psh a",
                     "psh l",
                 ]
+            expression = next_expression
+
+        return expression
+
+    def visitShiftExpr(self, ctx: StornParser.ShiftExprContext) -> Type:
+        expression = self.visitMultiplicativeExpr(ctx.multiplicativeExpr(0))
+
+        multiplicative_count = (ctx.getChildCount() - 1) // 2
+        for i in range(multiplicative_count):
+            if not isinstance(expression, BaseType):
+                raise CompileError("Attempting to perform shift operation on non numerical type", ctx.multiplicativeExpr(i).start.line, ctx.multiplicativeExpr(i).start.column)
+            next_expression = self.visitMultiplicativeExpr(ctx.multiplicativeExpr(i + 1))
+            if not isinstance(next_expression, BaseType):
+                raise CompileError("Attempting to perform shift operation on non numerical type", ctx.multiplicativeExpr(i + 1).start.line, ctx.multiplicativeExpr(i + 1).start.column)
+            if next_expression.width != 8:
+                raise CompileError("Attempting to shift by 16-bit-width expression. Can only shift by 8-bit expression", ctx.multiplicativeExpr(i).start.line, ctx.multiplicativeExpr(i).start.column)
+
+            operation = ctx.shiftOp(i)
+            width = expression.width
+            if operation.SHR():
+                operation_instruction = "shr"
+            else:
+                if width == 16:
+                    raise CompileError("<< not currently supported for 16-bit-wide values", operation.start.line, operation.start.column)
+                operation_instruction = "shl"
+            if width == 8:
+                self.instructions += [
+                    "pop c",
+                    "pop b",
+                    f"L{self.label_count}:",
+                    "ldr a c",
+                    f"jmp zf L{self.label_count + 1}",
+                    "ldr a b",
+                    operation_instruction,
+                    "ldr b a",
+                    "ldr a c",
+                    "dec",
+                    "ldr c a",
+                    f"jmp L{self.label_count}",
+                    f"L{self.label_count + 1}:",
+                    "psh b",
+                ]
+                self.label_count += 2
+            elif width == 16: # TODO: implement me!
+                raise CompileError("Shift operations not yet implemented for 16-bit-wide values")
             expression = next_expression
 
         return expression
@@ -915,7 +1047,10 @@ class CodeGenerator(StornVisitor):
         return expression
 
     def visitUnaryExpr(self, ctx: StornParser.UnaryExprContext) -> Type:
-        expression = self.visitPrimaryExpr(ctx.primaryExpr())
+        if ctx.primaryExpr():
+            expression = self.visitPrimaryExpr(ctx.primaryExpr())
+        else:
+            expression = self.visitUnaryExpr(ctx.unaryExpr())
 
         if ctx.MINUS() or ctx.NOT():
             if not isinstance(expression, BaseType):
@@ -1032,8 +1167,8 @@ class CodeGenerator(StornVisitor):
 
             return lvalue
         elif ctx.CONSTANT():
-            constant = int(ctx.CONSTANT().getText())
-            width = int(ctx.width().getText())
+            constant = int(ctx.CONSTANT(0).getText())
+            width = int(ctx.CONSTANT(1).getText())
 
             if width == 8:
                 self.instructions += [
@@ -1046,6 +1181,8 @@ class CodeGenerator(StornVisitor):
                     f"psh {constant_high}",
                     f"psh {constant_low}",
                 ]
+            else:
+                raise CompileError("Invalid width", ctx.CONSTANT(1).start.line, ctx.CONSTANT(1).start.column)
 
             return BaseType(width)
         elif ctx.type_():

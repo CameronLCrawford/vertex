@@ -10,6 +10,9 @@ def compile(source_file, assembly_file):
     stream = CommonTokenStream(lexer)
     parser = StornParser(stream)
     tree = parser.program()
+    if parser.getNumberOfSyntaxErrors() > 0:
+        print("Failed to parse.")
+        return
     generator = CodeGenerator()
     try:
         generator.visit(tree)

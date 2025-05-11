@@ -117,16 +117,26 @@ expression
         ;
 
 logicalExpr
-        : comparativeExpr (logicalOp comparativeExpr)*
+        : bitwiseExpr (logicalOp bitwiseExpr)*
         ;
 
 logicalOp
-        : OR
-        | AND
+        : AND
+        | OR
+        ;
+
+bitwiseExpr
+        : comparativeExpr (bitwiseOp comparativeExpr)*
+        ;
+
+bitwiseOp
+        : DIS
+        | CON
+        | XOR
         ;
 
 comparativeExpr
-        : additiveExpr (comparativeOp additiveExpr)*
+        : arithmeticExpr (comparativeOp arithmeticExpr)*
         ;
 
 comparativeOp
@@ -137,13 +147,22 @@ comparativeOp
         | GEQ
         ;
 
-additiveExpr
-        : multiplicativeExpr (additiveOp multiplicativeExpr)*
+arithmeticExpr
+        : shiftExpr (arithmeticOp shiftExpr)*
         ;
 
-additiveOp
+arithmeticOp
         : PLUS
         | MINUS
+        ;
+
+shiftExpr
+        : multiplicativeExpr (shiftOp multiplicativeExpr)*
+        ;
+
+shiftOp
+        : SHR
+        | SHL
         ;
 
 multiplicativeExpr
@@ -151,20 +170,16 @@ multiplicativeExpr
         ;
 
 unaryExpr
-        : (MINUS | NOT | type)? primaryExpr
+        : (MINUS | NOT | type) unaryExpr
+        | primaryExpr
         ;
 
 primaryExpr
         : '(' expression ')'
         | call
         | lvalue
-        | CONSTANT ':' width
+        | CONSTANT ':' CONSTANT
         | '#' type
-        ;
-
-width
-        : '8'
-        | '16'
         ;
 
 call
@@ -183,6 +198,14 @@ type
 
 // Lexer Rules
 
+AND
+        : 'and'
+        ;
+
+OR
+        : 'or'
+        ;
+
 NAME
         : [a-zA-Z_][a-zA-Z0-9_]*
         ;
@@ -195,12 +218,16 @@ DEREFERENCE
         : '$'
         ;
 
-OR
+DIS
         : '|'
         ;
 
-AND
+CON
         : '&'
+        ;
+
+XOR
+        : '^'
         ;
 
 EQ
@@ -233,6 +260,14 @@ MINUS
 
 NOT
         : '~'
+        ;
+
+SHR
+        : '>>'
+        ;
+
+SHL
+        : '<<'
         ;
 
 // Whitespace and comments

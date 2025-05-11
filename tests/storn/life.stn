@@ -1,0 +1,216 @@
+global curr_state: <[8]>.
+global next_state: <[8]>.
+global rows: [8].
+global cols: [8].
+
+routine clear_state () -> [0];
+        total: [16].
+        index: [16].
+        p1: <[8]>.
+{
+        total = rows * cols.
+        index = 0:16.
+        loop {
+                if index = total {
+                        break.
+                }
+                p1 = <[8]>([16]next_state + index).
+                $p1 = 0:8.
+                index = index + 1:16.
+        }
+        return.
+}
+
+routine update_display () -> [0];
+        total: [16].
+        index: [16].
+        p1: <[8]>.
+        p2: <[8]>.
+{
+        total = rows * cols.
+        index = 0:16.
+        loop {
+                if index = total {
+                        break.
+                }
+                p1 = <[8]>([16]curr_state + index).
+                p2 = <[8]>([16]next_state + index).
+                $p1 = $p2.
+                index = index + 1:16.
+        }
+        return.
+}
+
+routine get_alive (row: [8], col: [8], bit: [8]) -> [8];
+        index: [16].
+        curr_byte: <[8]>.
+{
+        index = cols * row + [16]col.
+        curr_byte = <[8]>([16]curr_state + index).
+        return ($curr_byte >> bit) & 1:8.
+}
+
+routine toggle_cell (row: [8], col: [8], bit: [8]) -> [0];
+        index: [16].
+        curr_byte: <[8]>.
+        next_byte: <[8]>.
+{
+        index = cols * row + [16]col.
+        curr_byte = <[8]>([16]curr_state + index).
+        next_byte = <[8]>([16]next_state + index).
+        $next_byte = $next_byte ^ (1:8 << bit).
+        return.
+}
+
+' for each cell,
+' if alive:
+'       0-1 neighbours -> dead
+'       2-3 neighbours -> alive
+'       4+  neighbours -> dead
+' if dead:
+'       3   neighbours -> alive
+' neighbours for cell X are labelled a-h, as such:
+' a b c
+' d X e
+' f g h
+routine calculate_next_state () -> [0];
+        row: [8].
+        col: [8].
+        bit: [8].
+        index: [16].
+        curr_byte: [8].
+        alive: [8].
+        neighbour_count: [8].
+{
+        row = 0:8.
+        loop {
+                if row = rows {
+                        break.
+                }
+                col = 0:8.
+                loop {
+                        if col = cols {
+                                break.
+                        }
+                        bit = 0:8.
+                        loop {
+                                if bit = 8:8 {
+                                        break.
+                                }
+                                alive = !get_alive(row, col, bit).
+                                neighbour_count = 0:8.
+
+                                ' neighbour a
+                                if row > 0:8 and (col > 0:8 or bit < 7:8) {
+                                        if bit = 7:8 {
+                                                neighbour_count = neighbour_count + !get_alive(row - 1:8, col - 1:8, 0:8).
+                                        } else {
+                                                neighbour_count = neighbour_count + !get_alive(row - 1:8, col, bit + 1:8).
+                                        }
+                                }
+
+                                ' neighbour b
+                                if row > 0:8 {
+                                        neighbour_count = neighbour_count + !get_alive(row - 1:8, col, bit).
+                                }
+
+                                ' neighbour c
+                                if row > 0:8 and (col < (cols - 1:8) or bit > 0:8) {
+                                        if bit = 0:8 {
+                                                neighbour_count = neighbour_count + !get_alive(row - 1:8, col + 1:8, 7:8).
+                                        } else {
+                                                neighbour_count = neighbour_count + !get_alive(row - 1:8, col, bit - 1:8).
+                                        }
+                                }
+
+                                ' neighbour d
+                                if col > 0:8 or bit < 7:8 {
+                                        if bit = 7:8 {
+                                                neighbour_count = neighbour_count + !get_alive(row, col - 1:8, 0:8).
+                                        } else {
+                                                neighbour_count = neighbour_count + !get_alive(row, col, bit + 1:8).
+                                        }
+                                }
+
+                                ' neighbour e
+                                if col < (cols - 1:8) or bit > 0:8 {
+                                        if bit = 0:8 {
+                                                neighbour_count = neighbour_count + !get_alive(row, col + 1:8, 7:8).
+                                        } else {
+                                                neighbour_count = neighbour_count + !get_alive(row, col, bit - 1:8).
+                                        }
+                                }
+
+                                ' neighbour f
+                                if row < (rows - 1:8) and (col > 0:8 or bit < 7:8) {
+                                        if bit = 7:8 {
+                                                neighbour_count = neighbour_count + !get_alive(row + 1:8, col - 1:8, 0:8).
+                                        } else {
+                                                neighbour_count = neighbour_count + !get_alive(row + 1:8, col, bit + 1:8).
+                                        }
+                                }
+
+                                ' neighbour g
+                                if row < (rows - 1:8) {
+                                        neighbour_count = neighbour_count + !get_alive(row + 1:8, col, bit).
+                                }
+
+                                ' neighbour h
+                                if row < (rows - 1:8) and (col < (cols - 1:8) or bit > 0:8) {
+                                        if bit = 0:8 {
+                                                neighbour_count = neighbour_count + !get_alive(row + 1:8, col + 1:8, 7:8).
+                                        } else {
+                                                neighbour_count = neighbour_count + !get_alive(row + 1:8, col, bit - 1:8).
+                                        }
+                                }
+
+                                if alive {
+                                        if neighbour_count < 2:8 or neighbour_count > 3:8 {
+                                                !toggle_cell(row, col, bit).
+                                        }
+                                } else {
+                                        if neighbour_count = 3:8 {
+                                                !toggle_cell(row, col, bit).
+                                        }
+                                }
+
+                                bit = bit + 1:8.
+                        }
+                        col = col + 1:8.
+                }
+                row = row + 1:8.
+        }
+        return.
+}
+
+routine entry () -> [0];
+        init: <[8]>.
+        ticks: [8].
+{
+        ticks = 0:8.
+        rows = 32:8.
+        cols = 4:8.
+        curr_state = <[8]> 8192:16.
+        next_state = <[8]> 16384:16.
+
+        !clear_state().
+
+        ' glider
+        init = <[8]> next_state.
+        $init = 32:8.
+        init = <[8]>([16]next_state + 4:16).
+        $init = 160:8.
+        init = <[8]>([16]next_state + 8:16).
+        $init = 96:8.
+
+        loop {
+                !update_display().
+                !calculate_next_state().
+                ticks = ticks + 1:8.
+                output ticks.
+                if ticks = 255:8 {
+                        break.
+                }
+        }
+        return.
+}
