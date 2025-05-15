@@ -293,7 +293,7 @@ class CodeGenerator(StornVisitor):
         lvalue_type = self.visitLvalue(lvalue)
 
         if lvalue_type != expression_type:
-            raise CompileError("lvalue and expression are of different types", lvalue.start.line, lvalue.start.column)
+            raise CompileError(f"lvalue and expression are of different types, namely, {lvalue_type} and {expression_type}, respectively", lvalue.start.line, lvalue.start.column)
 
         # Pop bytes from stack to memory range [HL, HL + (size - 1)]
         # The top of the stack is the lowest byte of the variable, hence
@@ -1198,6 +1198,30 @@ class CodeGenerator(StornVisitor):
             ]
 
             return BaseType(16)
+        elif ctx.CHARACTER():
+            character = ctx.CHARACTER().getText()[1:-1] # 'a' -> a
+            character_ascii = ord(character)
+
+            if character_ascii > 127:
+                raise CompileError(f"Character '{character}' not found in 7-bit ASCII", ctx.CHARACTER().start.line, ctx.CHARACTER().start.column)
+            self.instructions += [
+                f"psh {character_ascii}",
+            ]
+
+            return BaseType(8)
+        elif ctx.STRING():
+            string = ctx.STRING().getText()[1:-1] # "cat" -> cat
+            string_ascii = [ord(chr) for chr in string] + [0] # null terminator
+            if any([val > 127 for val in string_ascii]):
+                raise CompileError(f"String '{string}' non-7-bit-ASCII characters", ctx.STRING().start.line, ctx.STRING().start.column)
+
+            self.instructions += [
+                *[f"psh {character_ascii}" for character_ascii in reversed(string_ascii)]
+            ]
+
+            return_type = ArrayType(BaseType(8), len(string_ascii))
+            return_type.size = len(string_ascii)
+            return return_type
         else:
             raise Exception("Unknown primary expression type")
 

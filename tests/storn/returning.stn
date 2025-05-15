@@ -2,7 +2,7 @@ routine foo () -> [8] {
         return 100:8.
 }
 
-routine bar () -> [8];
+routine bar () -> [8]
         x: [8].
 {
         x = 100:8.

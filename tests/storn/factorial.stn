@@ -8,7 +8,7 @@ routine factorial (n: [8]) -> [8] {
         return [8](n * !factorial(n - 1:8)).
 }
 
-routine entry () -> [0];
+routine entry () -> [0]
         result: [8].
 {
         result = !factorial(5:8).

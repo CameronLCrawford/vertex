@@ -5,7 +5,7 @@ routine foo (x: [8]) -> [8] {
         return !foo(x - 1:8).
 }
 
-routine entry () -> [0];
+routine entry () -> [0]
         y: [8].
 {
         y = !foo(220:8).

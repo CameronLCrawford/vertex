@@ -1,4 +1,4 @@
-routine entry () -> [0];
+routine entry () -> [0]
         x: [8].
         y: [8].
 {

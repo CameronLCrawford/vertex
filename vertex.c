@@ -483,7 +483,7 @@ void tock(CPUState *cpu)
     // Output to STDOUT
     if ((cpu->controlBus >> CTRL_OUT) & 0b1)
     {
-        logMessage(LOG_LEVEL_INFO, "OUTPUT: %d", cpu->dataBus);
+        logMessage(LOG_LEVEL_INFO, "OUTPUT: %d\t%c", cpu->dataBus, cpu->dataBus > 32 && cpu->dataBus < 127 ? cpu->dataBus : ' ');
     }
 }
 

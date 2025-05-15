@@ -1,4 +1,4 @@
-routine entry() -> [0];
+routine entry() -> [0]
         pixel_pointer: <[8]>.
 {
         pixel_pointer = <[8]> 8192:16.

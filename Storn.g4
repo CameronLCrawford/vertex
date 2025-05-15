@@ -37,7 +37,7 @@ typedParamList
         ;
 
 localVars
-        : (';' typeDeclaration+)?
+        : typeDeclaration*
         ;
 
 statements
@@ -180,6 +180,8 @@ primaryExpr
         | lvalue
         | CONSTANT ':' CONSTANT
         | '#' type
+        | STRING
+        | CHARACTER
         ;
 
 call
@@ -209,6 +211,15 @@ OR
 NAME
         : [a-zA-Z_][a-zA-Z0-9_]*
         ;
+
+CHARACTER
+        : '\'' ~['\r\n] '\''
+        ;
+
+STRING
+        : '"' ~['\r\n]+ '"'
+        ;
+
 
 CONSTANT
         : [0-9]+
@@ -277,6 +288,6 @@ WS
         ;
 
 COMMENT
-        : '\'' ~[\r\n]* -> skip
+        : ';' ~[\r\n]* -> skip
         ;
 

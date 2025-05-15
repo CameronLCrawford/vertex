@@ -1,0 +1,10 @@
+routine entry () -> [0]
+        x: [8] ^ 4.
+        y: [8].
+{
+        x = "cat".
+        output x.
+        y = 'o'.
+        output y.
+        return.
+}

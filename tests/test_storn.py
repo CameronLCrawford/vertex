@@ -10,6 +10,11 @@ def run_storn_test(program_name):
     assembly_path = f"out/test_storn_{program_name}.vtx"
     rom_path = "roms/test"
     subprocess.run([
+        "rm",
+        "-f",
+        assembly_path
+    ], check=True)
+    subprocess.run([
         "python3",
         "compile_storn.py",
         program_path,
