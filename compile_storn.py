@@ -1,30 +1,47 @@
 import sys
-from antlr4 import FileStream, CommonTokenStream
+import argparse
+from antlr4 import FileStream, InputStream, CommonTokenStream
 from storn.StornLexer import StornLexer
 from storn.StornParser import StornParser
 from CodeGenerator import CodeGenerator, CompileError
 
-def compile(source_file, assembly_file):
-    input = FileStream(source_file)
+def compile(source, is_file):
+    input = FileStream(source) if is_file else InputStream(source)
     lexer = StornLexer(input)
     stream = CommonTokenStream(lexer)
     parser = StornParser(stream)
     tree = parser.program()
     if parser.getNumberOfSyntaxErrors() > 0:
-        print("Failed to parse.")
-        return
+        raise CompileError("Failed to parse")
     generator = CodeGenerator()
+    generator.visit(tree)
+    return generator.instructions
+
+def main():
+    parser = argparse.ArgumentParser(description="Storn Compiler")
+    parser.add_argument("input", nargs="?", help="Source file (or stdin if omitted)")
+    parser.add_argument("-o", "--output", help="Output file (or stdout if omitted)")
+    args = parser.parse_args()
+
     try:
-        generator.visit(tree)
+        if args.input:
+            instructions = compile(args.input, True)
+        else:
+            source = sys.stdin.read()
+            instructions = compile(source, False)
+
+        output = open(args.output, "w") if args.output else sys.stdout
+        for instruction in instructions:
+            print(instruction, file=output)
+        if args.output:
+            output.close()
     except CompileError as error:
-        print("Compilation failed with error:")
-        print(error)
-        return
+        print("Compilation failed with error:", file=sys.stderr)
+        print(error, file=sys.stderr)
+        sys.exit(1)
     except Exception as exception:
+        print("Unexpected exception:", file=sys.stderr)
         raise exception
-    with open(assembly_file, "w") as out_file:
-        for instruction in generator.instructions:
-            out_file.write(f"{instruction}\n")
 
 if __name__ == "__main__":
-    compile(sys.argv[1], sys.argv[2])
+    main()

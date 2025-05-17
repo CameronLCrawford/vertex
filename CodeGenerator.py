@@ -334,7 +334,7 @@ class CodeGenerator(StornVisitor):
             if not (isinstance(index, BaseType) and index.width == 8):
                 raise CompileError("Attempting to index by expression that doesn't evaluate to [8]", ctx.expression(i).start.line, ctx.expression(i).start.column)
 
-            size = lvalue.size
+            size = lvalue.type_.size
 
             # Naive multiplication
             # HL := HL + index * size

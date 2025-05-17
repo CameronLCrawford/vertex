@@ -8,12 +8,10 @@ with open("tests/vtx_test_cases.yaml", "r") as file:
 def run_vtx_test(program_name):
     program_path = f"tests/vtx/{program_name}.vtx"
     rom_path = "roms/test"
-    subprocess.run([
-        "python3",
-        "assemble_vtx.py",
-        program_path,
-        rom_path
-    ], check=True)
+    subprocess.run(
+        ["python", "assemble_vtx.py", program_path, "-o", rom_path],
+        check=True
+    )
     result = subprocess.run(
         ["./out/vertex", "roms/control", rom_path],
         capture_output=True,

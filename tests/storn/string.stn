@@ -4,7 +4,7 @@ routine entry () -> [0]
 {
         x = "cat".
         output x.
-        y = 'o'.
-        output y.
+        x @ 1:8 = 'o'.
+        output x.
         return.
 }

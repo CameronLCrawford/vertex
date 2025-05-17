@@ -1,34 +1,36 @@
 import sys
-from typing import Optional
-from antlr4 import FileStream, CommonTokenStream
+import argparse
+from antlr4 import FileStream, InputStream, CommonTokenStream
 from vtx.VtxLexer import VtxLexer
 from vtx.VtxParser import VtxParser
 from Assembler import Assembler
 
-def assemble(assembly_file: str, rom_file: Optional[str]=None, debug_file: Optional[str]=None):
-    input = FileStream(assembly_file)
+def assemble(source, is_file):
+    input = FileStream(source) if is_file else InputStream(source)
     lexer = VtxLexer(input)
     stream = CommonTokenStream(lexer)
     parser = VtxParser(stream)
     tree = parser.program()
     assembler = Assembler()
     assembler.visit(tree)
-    rom_bytes = []
-    for instruction in assembler.instructions:
-        rom_bytes.append(instruction)
-    if not rom_file:
-        return bytearray(rom_bytes)
-    with open(rom_file, 'wb') as rom:
-        rom.write(bytearray(rom_bytes))
-    if debug_file:
-        with open(debug_file, 'w') as debug:
-            [debug.write(str(info) + "\n") for info in assembler.debug_info]
+    return bytearray(assembler.instructions)
+
+def main():
+    parser = argparse.ArgumentParser(description="Vtx Assembler")
+    parser.add_argument("input", nargs="?", help="Source file (or stdin if omitted)")
+    parser.add_argument("-o", "--output", help="Output file (or stdout if omitted)")
+    args = parser.parse_args()
+
+    if args.input:
+        program = assemble(args.input, True)
+    else:
+        source = sys.stdin.read()
+        program = assemble(source, False)
+    if args.output:
+        with open(args.output, "wb") as rom_file:
+            rom_file.write(program)
+    else:
+        sys.stdout.buffer.write(program)
 
 if __name__ == "__main__":
-    if len(sys.argv) == 3:
-        assemble(sys.argv[1], sys.argv[2])
-    elif len(sys.argv) == 4:
-        assemble(sys.argv[1], sys.argv[2], sys.argv[3])
-    else:
-        print(f"Invalid number of arguments. Expected 2 or 3 but got {len(sys.argv) - 1}.")
-        print(sys.argv)
+    main()

@@ -1,0 +1,7 @@
+routine entry () -> [0]
+        xs: [8] ^ 3.
+{
+        xs @ 1:8 = 10:8.
+        output xs.
+        return.
+}

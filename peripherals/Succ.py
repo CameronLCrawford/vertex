@@ -5,7 +5,7 @@ import time
 class Succ(Peripheral):
     def __init__(self):
         super().__init__(0, (500, 501))
-        program = assemble("peripherals/succ.vtx")
+        program = assemble("peripherals/succ.vtx", True)
         if not program:
             raise Exception("Assembler returned no program")
         self.succ_handler = Handler(501, program)
