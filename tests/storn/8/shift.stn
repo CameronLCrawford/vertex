@@ -1,0 +1,6 @@
+routine entry () -> [0]
+{
+        output 25:8 << 3:8.
+        output 201:8 >> 1:8.
+        return.
+}

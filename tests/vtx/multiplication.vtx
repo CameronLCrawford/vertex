@@ -1,4 +1,4 @@
-psh 100
+psh 200
 psh 100
 
 pop l ' multiplier / output low
@@ -16,7 +16,7 @@ ldr h a
 
 TWO:
 ldr a h
-shr
+shr cc
 ldr h a
 ldr a l
 shr cc

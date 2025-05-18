@@ -1,9 +1,0 @@
-routine entry () -> [0]
-        x: [8].
-        y: [8].
-{
-        x = 100:8.
-        y = 100:8.
-        output x * y.
-        return.
-}

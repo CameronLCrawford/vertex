@@ -1,0 +1,5 @@
+routine entry() -> [0]
+{
+        output -56:8.
+        return.
+}

@@ -1,0 +1,7 @@
+routine entry () -> [0]
+        x: [8] ^ 3.
+{
+        x @ 1:8 = 200:8.
+        output x @ 1:8.
+        return.
+}

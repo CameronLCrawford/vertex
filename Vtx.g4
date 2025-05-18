@@ -24,7 +24,6 @@ instruction
         | binaryAnd
         | binaryOr
         | binaryXor
-        | binaryNot
         | increment
         | decrement
         | shiftLeft
@@ -79,10 +78,6 @@ binaryXor
         : 'xor' source
         ;
 
-binaryNot
-        : 'not'
-        ;
-
 increment
         : 'inc' CARRY?
         ;
@@ -92,7 +87,7 @@ decrement
         ;
 
 shiftLeft
-        : 'shl'
+        : 'shl' CARRY?
         ;
 
 shiftRight

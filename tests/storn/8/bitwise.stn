@@ -1,0 +1,5 @@
+routine entry () -> [0]
+{
+        output 234:8 & 202:8 ^ 10:8 | 8:8.
+        return.
+}

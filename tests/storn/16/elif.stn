@@ -1,0 +1,13 @@
+routine entry () -> [0]
+{
+        if 0:16 {
+                loop {}
+        } elif 0:16 {
+                loop {}
+        } elif 200:16 {
+                output 200:8.
+        } elif 200:16 {
+                loop {}
+        }
+        return.
+}

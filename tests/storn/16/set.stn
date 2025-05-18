@@ -1,8 +1,7 @@
 routine entry () -> [0]
-        x: [8].
+        x: [16].
 {
-        x = 199:8.
-        x = x + 1:8.
+        x = 51656:16.
         output x.
         return.
 }

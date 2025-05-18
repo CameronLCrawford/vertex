@@ -1,0 +1,10 @@
+routine this () -> [16]
+{
+        return 51656:16.
+}
+
+routine entry () -> [0]
+{
+        output !this().
+        return.
+}

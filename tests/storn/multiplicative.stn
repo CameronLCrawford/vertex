@@ -1,0 +1,5 @@
+routine entry () -> [0]
+{
+        output 200:8 * 201:8.
+        return.
+}

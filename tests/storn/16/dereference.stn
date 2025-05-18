@@ -1,0 +1,7 @@
+routine entry () -> [0]
+        x: <[16]>.
+{
+        $x = 51656:16.
+        output $x.
+        return.
+}

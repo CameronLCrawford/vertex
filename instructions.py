@@ -49,16 +49,16 @@ SUB     = A1
 AND     = A1 | A0
 OR      = A2
 XOR     = A2 | A0
-NOT     = A2 | A1
-INC     = A2 | A1 | A0
-DEC     = A3
-SHR     = A3 | A0
-SHL     = A3 | A1
-ADDC    = A3 | A1 | A0
-SUBC    = A3 | A2
-INCC    = A3 | A2 | A0
-DECC    = A3 | A2 | A1
-SHRC    = A3 | A2 | A1 | A0
+INC     = A2 | A1
+DEC     = A2 | A1 | A0
+SHR     = A3
+SHL     = A3 | A0
+ADDC     = A3 | A1
+SUBC    = A3 | A1 | A0
+INCC    = A3 | A2
+DECC    = A3 | A2 | A0
+SHRC    = A3 | A2 | A1
+SHLC    = A3 | A2 | A1 | A0
 
 # Instructions
 # Each instruction is a list of control bit states.
@@ -148,7 +148,7 @@ instructions: list[Instruction] = [
             operation,
             [eval(operation) | AI, RST | CNI],
         )
-        for operation in ["NOT", "INC", "INCC", "DEC", "DECC", "SHL", "SHR", "SHRC"]
+        for operation in ["INC", "INCC", "DEC", "DECC", "SHL", "SHR", "SHLC", "SHRC"]
     ],
 
     ### DATA ###

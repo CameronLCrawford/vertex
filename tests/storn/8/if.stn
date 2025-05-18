@@ -1,6 +1,9 @@
 routine entry () -> [0]
 {
-        if 3:16 {
+        if 0:8 {
+                loop {}
+        }
+        if 200:8 {
                 output 200:8.
         }
         return.

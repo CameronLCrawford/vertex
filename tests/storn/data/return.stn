@@ -1,0 +1,20 @@
+data foo {
+        a: [8].
+        b: [16].
+        c: [8].
+}
+
+routine this () -> [foo]
+        x: [foo].
+{
+        x / c = 200:8.
+        return x.
+}
+
+routine entry () -> [0]
+        x: [foo].
+{
+        x = !this().
+        output x / c.
+        return.
+}

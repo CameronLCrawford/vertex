@@ -1,0 +1,8 @@
+routine entry () -> [0]
+{
+        loop {
+                break.
+        }
+        output 200:8.
+        return.
+}

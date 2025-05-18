@@ -1,0 +1,10 @@
+routine this (a: [8], b: [16], c: [8]) -> [8]
+{
+        return c + 1:8.
+}
+
+routine entry () -> [0]
+{
+        output !this(100:8, 100:16, 199:8).
+        return.
+}

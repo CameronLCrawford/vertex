@@ -1,0 +1,19 @@
+data foo {
+        a: [8].
+        b: [16].
+        c: [8].
+}
+
+data bar {
+        d: [8].
+        e: [foo].
+}
+
+routine entry () -> [0]
+        x: [foo].
+        y: [bar].
+{
+        y / e / c = 200:8.
+        output y / e / c.
+        return.
+}

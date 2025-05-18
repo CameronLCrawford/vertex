@@ -1,40 +1,138 @@
-- program: succ
+- program: 8/set
   expected_output: "OUTPUT: 200"
-- program: identity
+- program: 16/set
+  expected_output:
+    - "OUTPUT: 200"
+    - "OUTPUT: 201"
+- program: data/set
   expected_output: "OUTPUT: 200"
-- program: calling
+- program: 8/index
   expected_output: "OUTPUT: 200"
-- program: recursion
+- program: 16/index
+  expected_output:
+    - "OUTPUT: 200"
+    - "OUTPUT: 201"
+- program: data/index
   expected_output: "OUTPUT: 200"
-- program: returning
+- program: 8/projection
+  expected_output: "OUTPUT: 200"
+- program: 16/projection
+  expected_output:
+    - "OUTPUT: 200"
+    - "OUTPUT: 201"
+- program: data/projection
+  expected_output: "OUTPUT: 200"
+- program: 8/dereference
+  expected_output: "OUTPUT: 200"
+- program: 16/dereference
+  expected_output:
+    - "OUTPUT: 200"
+    - "OUTPUT: 201"
+- program: data/dereference
+  expected_output: "OUTPUT: 200"
+- program: 8/if
+  expected_output: "OUTPUT: 200"
+- program: 16/if
+  expected_output: "OUTPUT: 200"
+- program: 8/elif
+  expected_output: "OUTPUT: 200"
+- program: 16/elif
+  expected_output: "OUTPUT: 200"
+- program: else
   expected_output: "OUTPUT: 200"
 - program: loop
   expected_output: "OUTPUT: 200"
-- program: data
+- program: break
   expected_output: "OUTPUT: 200"
-- program: multiplication
+- program: continue
+  expected_output: "OUTPUT: 200"
+- program: 8/return
+  expected_output: "OUTPUT: 200"
+- program: 16/return
   expected_output:
-    - "OUTPUT: 16"
-    - "OUTPUT: 39"
-- program: factorial
-  expected_output: "OUTPUT: 120"
-- program: params
+    - "OUTPUT: 200"
+    - "OUTPUT: 201"
+- program: data/return
   expected_output: "OUTPUT: 200"
-- program: reference
+- program: 8/logical
   expected_output: "OUTPUT: 200"
-- program: reference_16
+- program: 16/logical
+  expected_output: "OUTPUT: 200"
+- program: 8/bitwise
+  expected_output: "OUTPUT: 200"
+- program: 16/bitwise
   expected_output:
-    - "OUTPUT: 64"
+    - "OUTPUT: 200"
+    - "OUTPUT: 201"
+- program: 8/comparative
+  expected_output:
+    - "OUTPUT: 200"
+    - "OUTPUT: 201"
+    - "OUTPUT: 202"
+    - "OUTPUT: 203"
+    - "OUTPUT: 204"
+    - "OUTPUT: 205"
+    - "OUTPUT: 206"
+- program: 16/comparative
+  expected_output:
+    - "OUTPUT: 200"
+    - "OUTPUT: 201"
+    - "OUTPUT: 202"
+    - "OUTPUT: 203"
+    - "OUTPUT: 204"
+    - "OUTPUT: 205"
+    - "OUTPUT: 206"
+    - "OUTPUT: 207"
+    - "OUTPUT: 208"
+    - "OUTPUT: 209"
+    - "OUTPUT: 210"
+    - "OUTPUT: 211"
+    - "OUTPUT: 212"
+    - "OUTPUT: 213"
+    - "OUTPUT: 214"
+    - "OUTPUT: 215"
+    - "OUTPUT: 216"
+    - "OUTPUT: 217"
+    - "OUTPUT: 218"
+    - "OUTPUT: 219"
+    - "OUTPUT: 220"
+    - "OUTPUT: 221"
+- program: 8/arithmetic
+  expected_output:
+      - "OUTPUT: 200"
+      - "OUTPUT: 201"
+- program: 16/arithmetic
+  expected_output: "OUTPUT: 200"
+- program: 8/shift
+  expected_output:
+    - "OUTPUT: 200"
+    - "OUTPUT: 100"
+- program: 16/shift
+  expected_output:
+    - "OUTPUT: 144"
+    - "OUTPUT: 12"
     - "OUTPUT: 156"
-- program: if_16
+- program: multiplicative
+  expected_output:
+    - "OUTPUT: 8"
+    - "OUTPUT: 157"
+- program: 8/negate
   expected_output: "OUTPUT: 200"
-- program: add_16
-  expected_output: "OUTPUT: 6"
-- program: globals
+- program: 16/negate
+  expected_output:
+    - "OUTPUT: 200"
+    - "OUTPUT: 201"
+- program: 8/not
+  expected_output: "OUTPUT: 200"
+- program: 16/not
+  expected_output:
+    - "OUTPUT: 200"
+    - "OUTPUT: 201"
+- program: call
   expected_output: "OUTPUT: 200"
 - program: size
   expected_output: "OUTPUT: 20"
-- program: elif
-  expected_output: "OUTPUT: 200"
-- program: else
+- program: string
+  expected_output: "OUTPUT: 111"
+- program: recursion
   expected_output: "OUTPUT: 200"

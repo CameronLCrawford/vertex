@@ -200,9 +200,6 @@ class Assembler(VtxVisitor):
             high_byte, low_byte = convert_address_to_bytes(address)
             return [instruction_names.index("XOR@"), high_byte, low_byte]
 
-    def visitBinaryNot(self, ctx: VtxParser.BinaryNotContext):
-        return [instruction_names.index("NOT")]
-
     def visitIncrement(self, ctx: VtxParser.IncrementContext):
         carry = ctx.CARRY()
         if carry:
@@ -220,7 +217,11 @@ class Assembler(VtxVisitor):
         return [instruction_names.index(instruction)]
 
     def visitShiftLeft(self, ctx: VtxParser.ShiftLeftContext):
-        return [instruction_names.index("SHL")]
+        if ctx.CARRY():
+            instruction = "SHLC"
+        else:
+            instruction = "SHL"
+        return [instruction_names.index(instruction)]
 
     def visitShiftRight(self, ctx: VtxParser.ShiftRightContext):
         if ctx.CARRY():

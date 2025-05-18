@@ -1,0 +1,9 @@
+routine entry () -> [0]
+{
+        if 1:8 and 2:8 and 3:8 {
+                if 0:8 or 1:8 or 0:8 {
+                        output 200:8.
+                }
+        }
+        return.
+}

@@ -191,6 +191,8 @@ class CodeGenerator(StornVisitor):
     def visitRoutine(self, ctx: StornParser.RoutineContext):
         parameters = self.visitTypedParamList(ctx.typedParamList())
         return_type = self.visitType(ctx.type_())
+        if isinstance(return_type, UnresolvedType):
+            return_type = self.data_table[return_type.name]
         routine_scope, size = self.visitLocalVars(ctx.localVars())
         name = ctx.NAME().getText()
         if name in self.routine_table:
@@ -380,7 +382,7 @@ class CodeGenerator(StornVisitor):
 
             if isinstance(field_type, UnresolvedType):
                 # Don't need to recalculate size or offset
-                resolved_type = self.data_table[field_name].copy()
+                resolved_type = self.data_table[field_type.name].copy()
                 field_type = resolved_type
 
             offset = field_type.offset
@@ -764,8 +766,35 @@ class CodeGenerator(StornVisitor):
                     f"L{self.label_count + 4}:",
                 ]
                 self.label_count += 5
-            elif width == 16: # TODO: implement me!
-                raise CompileError("Logical operations not yet implemented for 16-bit-wide values")
+            elif width == 16:
+                self.instructions += [
+                    "pop a",
+                    f"jmp nzf L{self.label_count}",
+                    "pop a",
+                    f"jmp nzf L{self.label_count}",
+                    "ldr b 0",
+                    f"jmp L{self.label_count + 1}",
+                    f"L{self.label_count}:",
+                    "ldr b 1",
+                    f"L{self.label_count + 1}",
+                    "pop a",
+                    f"jmp nzf L{self.label_count + 2}",
+                    "pop a",
+                    f"jmp L{self.label_count + 3}",
+                    f"L{self.label_count + 2}:",
+                    "ldr a 1",
+                    f"L{self.label_count + 3}:",
+                    operation_instruction,
+                    f"jmp nzf L{self.label_count + 4}",
+                    "psh 0",
+                    "psh 0",
+                    f"jmp L{self.label_count + 5}",
+                    f"L{self.label_count + 4}:",
+                    "psh 0",
+                    "psh 1",
+                    f"L{self.label_count + 5}",
+                ]
+                self.label_count += 6
             expression = next_expression
 
         return expression
@@ -870,7 +899,7 @@ class CodeGenerator(StornVisitor):
                     f"L{self.label_count + 1}:",
                 ]
                 self.label_count += 2
-            elif width == 16:
+            elif width == 16: # separated into zf (EQ) and sf comparisons
                 if operation.EQ():
                     # x - y
                     self.instructions += [
@@ -892,14 +921,14 @@ class CodeGenerator(StornVisitor):
                         f"L{self.label_count + 2}:",
                     ]
                     self.label_count += 3
-                else: # TODO: I'd be surprised if this works
+                else:
                     self.instructions += [
                         pop_ops[0],
                         "pop h",
                         pop_ops[1],
                         "sub b",
                         pop_ops[1],
-                        f"ldr {pop_ops[0][-1]} h",
+                        f"ldr {pop_ops[0][-1]} h", # get register name
                         "sub cc b",
                         f"jmp {flag} L{self.label_count}",
                         "psh 0",
@@ -976,8 +1005,6 @@ class CodeGenerator(StornVisitor):
             if operation.SHR():
                 operation_instruction = "shr"
             else:
-                if width == 16:
-                    raise CompileError("<< not currently supported for 16-bit-wide values", operation.start.line, operation.start.column)
                 operation_instruction = "shl"
             if width == 8:
                 self.instructions += [
@@ -997,9 +1024,43 @@ class CodeGenerator(StornVisitor):
                     "psh b",
                 ]
                 self.label_count += 2
-            elif width == 16: # TODO: implement me!
-                raise CompileError("Shift operations not yet implemented for 16-bit-wide values")
-            expression = next_expression
+            elif width == 16:
+                self.instructions += [
+                    "pop c",
+                    "pop l",
+                    "pop h",
+                    f"L{self.label_count}:",
+                    "ldr a c",
+                    f"jmp zf L{self.label_count + 1}",
+                    *( # whether to shift h or l first depends on direction
+                        [
+                            "ldr a h",
+                            "shr",
+                            "ldr h a",
+                            "ldr a l",
+                            "shr cc",
+                            "ldr l a",
+                        ] if operation_instruction == "shr" else [
+                            "ldr a l",
+                            "shl",
+                            "ldr l a",
+                            "ldr a h",
+                            "shl cc",
+                            "ldr h a",
+                        ]
+                    ),
+                    "ldr a c",
+                    "dec",
+                    "ldr c a",
+                    f"jmp L{self.label_count}",
+                    f"L{self.label_count + 1}:",
+                    "psh h",
+                    "psh l",
+                ]
+                self.label_count += 2
+
+            if width == 8: # otherwise we return width 8 for width 16
+                expression = next_expression
 
         return expression
 
@@ -1028,7 +1089,7 @@ class CodeGenerator(StornVisitor):
                 "ldr h a",
                 f"L{self.label_count + 1}:",
                 "ldr a h",
-                "shr",
+                "shr cc",
                 "ldr h a",
                 "ldr a l",
                 "shr cc",
@@ -1081,18 +1142,20 @@ class CodeGenerator(StornVisitor):
                 if width == 8:
                     self.instructions += [
                         "pop a",
-                        "not",
+                        "ldr b 255",
+                        "xor b",
                         "psh a",
                     ]
                 elif width == 16:
                     self.instructions += [
                         "pop a",
-                        "not",
-                        "ldr b a",
+                        "ldr b 255",
+                        "xor b",
+                        "ldr l a",
                         "pop a",
-                        "not",
+                        "xor b",
                         "psh a",
-                        "psh b",
+                        "psh l",
                     ]
         elif ctx.type_():
             type_ = self.visitType(ctx.type_())

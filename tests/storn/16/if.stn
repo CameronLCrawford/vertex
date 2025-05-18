@@ -1,0 +1,14 @@
+routine entry () -> [0]
+{
+        if 0:16 {
+                loop {}
+        }
+        if 1:16 { ; 0 higher byte
+                if 256:16 { ; 0 lower byte
+                        if 257:16 {
+                                output 200:8.
+                        }
+                }
+        }
+        return.
+}

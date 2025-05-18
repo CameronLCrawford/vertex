@@ -1,0 +1,9 @@
+routine entry () -> [0]
+{
+        if 1:16 and 256:16 and 257:16 {
+                if 0:16 or 1:16 or 0:16 {
+                        output 200:8.
+                }
+        }
+        return.
+}

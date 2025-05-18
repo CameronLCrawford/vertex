@@ -88,7 +88,7 @@ typedef enum
     ADD, SUB,
 
     // Binary logical
-    AND, OR, XOR, NOT,
+    AND, OR, XOR,
 
     // Inc/decrement
     INC, DEC,
@@ -97,7 +97,7 @@ typedef enum
     SHR, SHL,
 
     // Carry conditional
-    ADDC, SUBC, INCC, DECC, SHRC
+    ADDC, SUBC, INCC, DECC, SHRC, SHLC
 } AluOp;
 
 typedef struct
@@ -342,9 +342,6 @@ void tick(CPUState *cpu)
         case XOR:
             bus = acc ^ temp;
             break;
-        case NOT:
-            bus = ~acc;
-            break;
         case INC:
             bus = acc + 1;
             carry = acc == 255;
@@ -359,7 +356,7 @@ void tick(CPUState *cpu)
             break;
         case SHL:
             bus = acc << 1;
-            carry = acc & 0b10000000;
+            carry = (acc & 0b10000000) > 0;
             break;
         case ADDC:
             bus = acc + temp + carry;
@@ -378,8 +375,12 @@ void tick(CPUState *cpu)
             carry = acc < carry;
             break;
         case SHRC:
-            bus = (acc >> 1) | ((uint8_t)carry << 7);
+            bus = (acc >> 1) | (carry << 7);
             carry = acc & 0b1;
+            break;
+        case SHLC:
+            bus = (acc << 1) | carry;
+            carry = (acc & 0b10000000) > 0;
             break;
         default:
             logMessage(LOG_LEVEL_ERROR, "ALU switch hit default");

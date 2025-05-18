@@ -1,0 +1,15 @@
+routine entry () -> [0]
+        x: [8].
+{
+        x = 0:8.
+        loop {
+                if x = 200:8 {
+                        break.
+                }
+                x = x + 1:8.
+                continue.
+                loop {}
+        }
+        output x.
+        return.
+}

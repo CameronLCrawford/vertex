@@ -1,0 +1,10 @@
+routine this () -> [8]
+{
+        return 200:8.
+}
+
+routine entry () -> [0]
+{
+        output !this().
+        return.
+}
