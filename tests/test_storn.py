@@ -8,15 +8,10 @@ with open("tests/storn_test_cases.yaml", "r") as file:
 def run_storn_test(program_name):
     program_path = f"tests/storn/{program_name}.stn"
     rom_path = "roms/test"
-    compile = subprocess.run(
-        ["python", "compile_storn.py", program_path],
+    subprocess.run(
+        ["python", "compile_storn.py", program_path, "-o", rom_path],
         check=True,
         stdout=subprocess.PIPE,
-    )
-    subprocess.run(
-        ["python", "assemble_vtx.py", "-o", rom_path],
-        input=compile.stdout,
-        check=True,
     )
     result = subprocess.run(
         ["./out/vertex", "roms/control", rom_path],

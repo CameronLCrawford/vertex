@@ -23,6 +23,7 @@ class Type:
     def __init__(self):
         self.size = 0
         self.offset = 0
+        self.export = {}
 
     def calculate_size(self, data_table: Dict[str, "DataType"]):
         pass
@@ -44,6 +45,7 @@ class BaseType(Type):
         self.width = width
         self.size = int(width) // 8
         self.offset = 0
+        self.export = {'BaseType': {'width': width}}
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, BaseType) and self.width == other.width
@@ -56,6 +58,7 @@ class UnresolvedType(Type):
         self.name = name
         self.size = 0
         self.offset = 0
+        self.export = {'UnresolvedType': {'name': name}}
 
     def calculate_size(self, data_table: Dict[str, "DataType"]):
         self.size = data_table[self.name].size
@@ -75,6 +78,7 @@ class DataType(Type):
         self.fields = fields
         self.size = 0
         self.offset = 0
+        self.export = {'DataType': {'name': name, 'fields': {field: fields[field].export for field in fields}}}
 
     def calculate_size(self, data_table: Dict[str, "DataType"]):
         for field in self.fields.values():
@@ -107,6 +111,7 @@ class ReferenceType(Type):
         self.type_ = type_
         self.size = 2
         self.offset = 0
+        self.export = {'ReferenceType': {'type_': type_.export}}
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, ReferenceType) and self.type_ == other.type_
@@ -122,6 +127,7 @@ class ArrayType(Type):
         self.elements = [type_] * length
         self.size = 0
         self.offset = 0
+        self.export = {'ArrayType': {'type_': type_.export, 'length': length}}
 
     def calculate_size(self, data_table: Dict[str, "DataType"]):
         for element in self.elements:
@@ -145,8 +151,8 @@ class Routine:
         self.is_entry = is_entry
 
 class CodeGenerator(StornVisitor):
-    def __init__(self):
-        self.instructions: List[str] = ["jmp ENTRY"]
+    def __init__(self, exports):
+        self.instructions: List[str] = ["jmp entry"]
         self.data_table: Dict[str, DataType] = {}
         self.globals: Dict[str, Type] = {}
         self.global_offset = 0
@@ -154,6 +160,7 @@ class CodeGenerator(StornVisitor):
         self.current_routine: Routine = Routine({}, Type(), {}, False)
         self.label_count = 0
         self.loop_label_stack = []
+        self.exports = exports
 
     def visitData(self, ctx: StornParser.DataContext):
         name = ctx.NAME().getText()
@@ -165,6 +172,7 @@ class CodeGenerator(StornVisitor):
             fields[field_name] = field_type_
 
         data_type = DataType(name, fields)
+        self.exports['data'].update({name: data_type.export})
         data_type.calculate_size(self.data_table)
         data_type.calculate_offset(0)
         self.data_table[name] = data_type
@@ -183,6 +191,12 @@ class CodeGenerator(StornVisitor):
         name, type_ = self.visitTypeDeclaration(ctx.typeDeclaration())
         type_.calculate_size(self.data_table)
         type_.calculate_offset(self.global_offset)
+        self.exports['globals'].update({
+            name: {
+                'type_': type_.export,
+                'offset': self.global_offset
+            }
+        })
         self.global_offset += type_.size
         self.globals[name] = type_
 
@@ -200,13 +214,18 @@ class CodeGenerator(StornVisitor):
         routine = Routine(parameters, return_type, routine_scope, name == "entry")
         self.routine_table[name] = routine
         self.current_routine = routine
+        self.exports['routines'].update({
+            name: {
+                'parameters': {parameter: parameters[parameter].export for parameter in parameters},
+                'return_type': return_type.export
+            }
+        })
 
         # Prologue
         size_low = size & 0b11111111
         size_high = size >> 8
         self.instructions += [
-            f"{name.upper()}:",
-            # NOTE: push state here
+            f"{name}:",
             "psh bph",
             "psh bpl",
             "ldr bph sph",
@@ -611,7 +630,7 @@ class CodeGenerator(StornVisitor):
             total_parameter_size += parameter_type.size
 
         self.instructions += [
-            f"cal {routine_name.upper()}",
+            f"cal {routine_name}",
         ]
 
         # Pop parameters

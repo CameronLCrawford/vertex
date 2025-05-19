@@ -1,40 +1,70 @@
 import sys
 import argparse
+import yaml
+
 from antlr4 import FileStream, InputStream, CommonTokenStream
+
 from storn.StornLexer import StornLexer
 from storn.StornParser import StornParser
 from CodeGenerator import CodeGenerator, CompileError
 
-def compile(source, is_file):
-    input = FileStream(source) if is_file else InputStream(source)
-    lexer = StornLexer(input)
-    stream = CommonTokenStream(lexer)
-    parser = StornParser(stream)
-    tree = parser.program()
-    if parser.getNumberOfSyntaxErrors() > 0:
+from vtx.VtxLexer import VtxLexer
+from vtx.VtxParser import VtxParser
+from Assembler import Assembler
+
+def compile(source, is_file, start_address):
+    exports = {"globals": {}, "data": {}, "routines": {}}
+
+    storn_input = FileStream(source) if is_file else InputStream(source)
+    storn_lexer = StornLexer(storn_input)
+    storn_stream = CommonTokenStream(storn_lexer)
+    storn_parser = StornParser(storn_stream)
+    storn_tree = storn_parser.program()
+    if storn_parser.getNumberOfSyntaxErrors() > 0:
         raise CompileError("Failed to parse")
-    generator = CodeGenerator()
-    generator.visit(tree)
-    return generator.instructions
+    generator = CodeGenerator(exports)
+    generator.visit(storn_tree)
+
+    assembly = "\n".join(generator.instructions) + "\n"
+    vtx_input = InputStream(assembly)
+    vtx_lexer = VtxLexer(vtx_input)
+    vtx_stream = CommonTokenStream(vtx_lexer)
+    vtx_parser = VtxParser(vtx_stream)
+    vtx_tree = vtx_parser.program()
+    assembler = Assembler(exports, start_address)
+    assembler.visit(vtx_tree)
+
+    return bytearray(assembler.instructions), assembly, exports
 
 def main():
     parser = argparse.ArgumentParser(description="Storn Compiler")
     parser.add_argument("input", nargs="?", help="Source file (or stdin if omitted)")
     parser.add_argument("-o", "--output", help="Output file (or stdout if omitted)")
+    parser.add_argument("-s", "--assembly", help="File to write assembly to (no assembly written if omitted)")
+    parser.add_argument("-a", "--address", type=lambda x: int(x, 0), help="Address in memory to start program from. Used for label address resolution. Default (omission) places program at the end of memory")
+    parser.add_argument("-e", "--export", help="File to write export data to (no exports generated if omitted)")
     args = parser.parse_args()
 
     try:
         if args.input:
-            instructions = compile(args.input, True)
+            program, assembly, exports = compile(args.input, True, args.address)
         else:
             source = sys.stdin.read()
-            instructions = compile(source, False)
+            program, assembly, exports = compile(source, False, args.address)
 
-        output = open(args.output, "w") if args.output else sys.stdout
-        for instruction in instructions:
-            print(instruction, file=output)
+        if args.assembly:
+            with open(args.assembly, "w") as assembly_file:
+                assembly_file.write(assembly)
+
+        if args.export:
+            with open(args.export, "w") as export_file:
+                yaml.dump(exports, export_file)
+
         if args.output:
-            output.close()
+            with open(args.output, "wb") as rom_file:
+                rom_file.write(program)
+        else:
+            sys.stdout.buffer.write(program)
     except CompileError as error:
         print("Compilation failed with error:", file=sys.stderr)
         print(error, file=sys.stderr)

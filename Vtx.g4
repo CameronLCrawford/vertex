@@ -11,7 +11,7 @@ line
         ;
 
 label
-        : NAME ':'
+        : LABEL ':'
         ;
 
 instruction
@@ -95,11 +95,11 @@ shiftRight
         ;
 
 jump
-        : 'jmp' CONDITION? (NAME | M)
+        : 'jmp' CONDITION? (LABEL | M)
         ;
 
 call
-        : 'cal' NAME
+        : 'cal' (LABEL | ADDRESS)
         ;
 
 interruptReturn
@@ -115,14 +115,6 @@ halt
         ;
 
 // Lexer Rules
-
-NAME
-        : [A-Z_][A-Z0-9_]*
-        ;
-
-CONSTANT
-        : [0-9]+
-        ;
 
 REGISTER
         : 'a'
@@ -141,10 +133,6 @@ M
         : 'm'
         ;
 
-ADDRESS
-        : '@' CONSTANT
-        ;
-
 CONDITION
         : 'zf'
         | 'sf'
@@ -156,6 +144,18 @@ CONDITION
 
 CARRY
         : 'cc'
+        ;
+
+LABEL
+        : [a-zA-Z_][a-zA-Z0-9_]*
+        ;
+
+CONSTANT
+        : [0-9]+
+        ;
+
+ADDRESS
+        : '@' CONSTANT
         ;
 
 // Whitespace and comments

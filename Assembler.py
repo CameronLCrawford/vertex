@@ -1,6 +1,7 @@
+from typing import Optional
 from vtx.VtxVisitor import VtxVisitor
 from vtx.VtxParser import VtxParser
-from instructions import instructions, instruction_names
+from instructions import instruction_names
 
 MEMORY_SIZE = 2**16
 
@@ -11,19 +12,23 @@ def convert_address_to_bytes(address: int) -> tuple[int, int]:
     return (high_byte, low_byte)
 
 class Assembler(VtxVisitor):
-    def __init__(self):
+    def __init__(self, exports, start_address: Optional[int] = None):
         self.instructions: list[int] = []
         self.label_offset: dict[str, int] = {} # map from label to its offset relative to start of program
         self.program_offset = 0 # offset from start of program
-        self.debug_info = []
+        self.start_address = start_address
+        self.exports = exports
 
     def visitProgram(self, ctx: VtxParser.ProgramContext):
         for line in ctx.line():
             self.visit(line)
         # Resolve jump / call names with symbol table
-        program_size = len(self.instructions)
+        start_address = self.start_address
+        if start_address is None:
+            program_size = len(self.instructions)
+            start_address = MEMORY_SIZE - program_size
         for label in self.label_offset:
-            self.label_offset[label] += MEMORY_SIZE - program_size
+            self.label_offset[label] += start_address
         for i, instruction in enumerate(self.instructions):
             if instruction in self.label_offset:
                 prefix = self.instructions[:i]
@@ -32,6 +37,8 @@ class Assembler(VtxVisitor):
                 except IndexError:
                     suffix = []
                 address_bytes = convert_address_to_bytes(self.label_offset[instruction])
+                if self.exports and instruction in self.exports['routines']:
+                    self.exports['routines'][instruction].update({'address': self.label_offset[instruction]})
                 self.instructions = prefix + list(address_bytes) + suffix
             elif instruction == "<LOW_BYTE>":
                 continue
@@ -42,7 +49,7 @@ class Assembler(VtxVisitor):
                     raise Exception(f"Error on instruction: {instruction}")
 
     def visitLabel(self, ctx: VtxParser.LabelContext):
-        label_name = ctx.NAME().getText()
+        label_name = ctx.LABEL().getText()
         if label_name in self.label_offset:
             print(f"Warning: Label {label_name} defined more than once")
         self.label_offset[label_name] = self.program_offset
@@ -52,12 +59,6 @@ class Assembler(VtxVisitor):
         if instruction:
             self.instructions += instruction
             self.program_offset += len(instruction)
-            debug_instruction = instructions[instruction[0]]
-            self.debug_info.append([
-                debug_instruction.name,
-                debug_instruction.microinstructions,
-            ])
-            self.debug_info += instruction[1:]
 
     def visitLoadRegister(self, ctx: VtxParser.LoadRegisterContext):
         destination = ctx.REGISTER().getText().upper()
@@ -232,16 +233,21 @@ class Assembler(VtxVisitor):
 
     def visitJump(self, ctx: VtxParser.JumpContext):
         condition = ctx.CONDITION().getText().upper() if ctx.CONDITION() else ""
-        if ctx.NAME():
-            label_name = ctx.NAME().getText()
+        if ctx.LABEL():
+            label_name = ctx.LABEL().getText()
             instruction = instruction_names.index(f"J{condition}I")
             return [instruction, label_name, "<LOW_BYTE>"]
         elif ctx.M():
             return [instruction_names.index(f"J{condition}M")]
 
     def visitCall(self, ctx: VtxParser.CallContext):
-        label_name = ctx.NAME().getText()
-        return [instruction_names.index("CAL"), label_name, "<LOW_BYTE>"]
+        if ctx.LABEL():
+            label_name = ctx.LABEL().getText()
+            return [instruction_names.index("CAL"), label_name, "<LOW_BYTE>"]
+        else:
+            address = int(ctx.ADDRESS().getText()[1:])
+            high_byte, low_byte = convert_address_to_bytes(address)
+            return [instruction_names.index("CAL"), high_byte, low_byte]
 
     def visitInterruptReturn(self, ctx: VtxParser.InterruptReturnContext):
         return [instruction_names.index("INTRET")]
