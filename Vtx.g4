@@ -51,11 +51,11 @@ store
         ;
 
 push
-        : 'psh' source
+        : 'psh' (source | 's')
         ;
 
 pop
-        : 'pop' REGISTER
+        : 'pop' (REGISTER | 's')
         ;
 
 add

@@ -6,12 +6,15 @@ from vtx.VtxParser import VtxParser
 from Assembler import Assembler
 
 def assemble(source, is_file, start_address):
+    imports = {"globals": {}, "data": {}, "routines": {}}
+    exports = {"globals": {}, "data": {}, "routines": {}}
+
     input = FileStream(source) if is_file else InputStream(source)
     lexer = VtxLexer(input)
     stream = CommonTokenStream(lexer)
     parser = VtxParser(stream)
     tree = parser.program()
-    assembler = Assembler(start_address)
+    assembler = Assembler(imports, exports, start_address)
     assembler.visit(tree)
     return bytearray(assembler.instructions)
 

@@ -6,6 +6,7 @@ import copy
 GLOBAL_VAR_BASE = 0
 GLOBAL_VAR_BASE_LOW = GLOBAL_VAR_BASE & 0b11111111
 GLOBAL_VAR_BASE_HIGH = GLOBAL_VAR_BASE >> 8
+STATUS_REGISTERS = ["s", "a", "b", "c", "h", "l"]
 
 class CompileError(Exception):
     def __init__(self, message, line=None, column=None):
@@ -40,6 +41,21 @@ class Type:
     def __repr__(self) -> str:
         return ""
 
+    @classmethod
+    def import_(cls, import_dict) -> "Type":
+        match import_dict['type_']:
+            case 'BaseType':
+                return BaseType.import_(import_dict['type_'])
+            case 'UnresolvedType':
+                return UnresolvedType.import_(import_dict['type_'])
+            case 'DataType':
+                DataType.import_(import_dict['type_'])
+            case 'ReferenceType':
+                return ReferenceType.import_(import_dict['type_'])
+            case 'ArrayType':
+                return ArrayType.import_(import_dict['type_'])
+        return cls()
+
 class BaseType(Type):
     def __init__(self, width: int):
         self.width = width
@@ -52,6 +68,10 @@ class BaseType(Type):
 
     def __repr__(self) -> str:
         return f"[{self.width}]"
+
+    @classmethod
+    def import_(cls, import_dict) -> Type:
+        return cls(import_dict['BaseType']['width'])
 
 class UnresolvedType(Type):
     def __init__(self, name: str):
@@ -68,6 +88,10 @@ class UnresolvedType(Type):
 
     def __repr__(self) -> str:
         return self.name
+
+    @classmethod
+    def import_(cls, import_dict) -> Type:
+        return cls(import_dict['UnresolvedType']['name'])
 
 class DataType(Type):
     def __init__(self, name: str, fields: Dict[str, Type]):
@@ -106,6 +130,13 @@ class DataType(Type):
             for f in self.fields
         ) + " }"
 
+    @classmethod
+    def import_(cls, import_dict) -> Type:
+        name = import_dict['DataType']['name']
+        fields_dict = import_dict['DataType']['fields']
+        fields = {field: Type.import_(fields_dict[field]) for field in fields_dict}
+        return DataType(name, fields)
+
 class ReferenceType(Type):
     def __init__(self, type_: Type):
         self.type_ = type_
@@ -120,6 +151,10 @@ class ReferenceType(Type):
         if isinstance(self.type_, str):
             return f"<[{self.type_}]>"
         return f"<{self.type_.__repr__()}>"
+
+    @classmethod
+    def import_(cls, import_dict) -> Type:
+        return ReferenceType(Type.import_(import_dict['ReferenceType']['type_']))
 
 class ArrayType(Type):
     def __init__(self, type_: Type, length: int):
@@ -143,6 +178,10 @@ class ArrayType(Type):
             return f"[{self.type_}] ^ {len(self.elements)}"
         return f"{self.type_.__repr__()} ^ {len(self.elements)}"
 
+    @classmethod
+    def import_(cls, import_dict) -> Type:
+        return ArrayType(Type.import_(import_dict['ArrayType']['type_']), import_dict['ArrayType']['length'])
+
 class Routine:
     def __init__(self, parameters: Dict[str, Type], return_type: Type, scope: Dict[str, Type], is_entry: bool):
         self.parameters = parameters
@@ -151,7 +190,7 @@ class Routine:
         self.is_entry = is_entry
 
 class CodeGenerator(StornVisitor):
-    def __init__(self, exports):
+    def __init__(self, imports, exports, is_main: bool):
         self.instructions: List[str] = ["jmp entry"]
         self.data_table: Dict[str, DataType] = {}
         self.globals: Dict[str, Type] = {}
@@ -160,7 +199,43 @@ class CodeGenerator(StornVisitor):
         self.current_routine: Routine = Routine({}, Type(), {}, False)
         self.label_count = 0
         self.loop_label_stack = []
+        self.imports = imports
         self.exports = exports
+        self.is_main = is_main
+
+    def visitImportStmt(self, ctx: StornParser.ImportStmtContext):
+        name = ctx.NAME().getText()
+        if ctx.DATA():
+            data = self.imports['data'].get(name)
+            if data is None:
+                raise CompileError(f"Attempting to import unknown data '{name}'", ctx.NAME().start.line, ctx.NAME().start.column)
+        elif ctx.GLOBAL():
+            global_ = self.imports['globals'][name]
+            if global_ is None:
+                raise CompileError(f"Attempting to import unknown global '{name}'", ctx.NAME().start.line, ctx.NAME().start.column)
+
+            type_dict = global_['type_']
+            offset = global_['offset']
+            type_ = Type.import_(type_dict)
+            type_.calculate_size(self.data_table)
+            type_.calculate_offset(offset)
+            self.globals[name] = type_
+
+        elif ctx.ROUTINE():
+            routine = self.imports['routines'][name]
+            if routine is None:
+                raise CompileError(f"Attempting to import unknown routine '{name}'", ctx.NAME().start.line, ctx.NAME().start.column)
+            parameters_dict = routine['parameters']
+            parameters = {}
+            for parameter in parameters_dict:
+                parameter_type = Type.import_(parameters_dict[parameter])
+                parameter_type.calculate_size(self.data_table)
+                parameters[parameter] = parameter_type
+            return_type_dict = routine['return_type']
+            return_type = Type.import_(return_type_dict)
+            self.routine_table[name] = (Routine(parameters, return_type, {}, False))
+        else:
+            raise Exception("Unknown import type")
 
     def visitData(self, ctx: StornParser.DataContext):
         name = ctx.NAME().getText()
@@ -214,18 +289,20 @@ class CodeGenerator(StornVisitor):
         routine = Routine(parameters, return_type, routine_scope, name == "entry")
         self.routine_table[name] = routine
         self.current_routine = routine
-        self.exports['routines'].update({
-            name: {
-                'parameters': {parameter: parameters[parameter].export for parameter in parameters},
-                'return_type': return_type.export
-            }
-        })
+        if name != "entry":
+            self.exports['routines'].update({
+                name: {
+                    'parameters': {parameter: parameters[parameter].export for parameter in parameters},
+                    'return_type': return_type.export
+                }
+            })
 
         # Prologue
         size_low = size & 0b11111111
         size_high = size >> 8
         self.instructions += [
             f"{name}:",
+            *([f"psh {register}" for register in STATUS_REGISTERS] if name == "entry" and not self.is_main else []),
             "psh bph",
             "psh bpl",
             "ldr bph sph",
@@ -665,7 +742,7 @@ class CodeGenerator(StornVisitor):
         self.label_count += 2
 
     def visitReturnStmt(self, ctx: StornParser.ReturnStmtContext):
-        if self.current_routine.is_entry:
+        if self.current_routine.is_entry and self.is_main:
             self.instructions += [
                 "hlt",
             ]
@@ -736,9 +813,8 @@ class CodeGenerator(StornVisitor):
             "ldr spl bpl",
             "pop bpl",
             "pop bph",
-            "pop l",
-            "pop h",
-            "jmp m",
+            *([f"pop {register}" for register in STATUS_REGISTERS] if self.current_routine.is_entry and not self.is_main else []),
+            *(["irt"] if self.current_routine.is_entry and not self.is_main else ["pop l", "pop h", "jmp m"]),
         ]
 
     def visitExpression(self, ctx: StornParser.ExpressionContext) -> Type:

@@ -7,9 +7,14 @@ program
         ;
 
 declaration
-        : data
+        : importStmt
+        | data
         | global
         | routine
+        ;
+
+importStmt
+        : 'import' (DATA | GLOBAL | ROUTINE) NAME '.'
         ;
 
 data
@@ -206,6 +211,18 @@ AND
 
 OR
         : 'or'
+        ;
+
+DATA
+        : 'data'
+        ;
+
+GLOBAL
+        : 'global'
+        ;
+
+ROUTINE
+        : 'routine'
         ;
 
 NAME

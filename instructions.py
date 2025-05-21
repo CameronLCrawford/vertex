@@ -60,6 +60,10 @@ DECC    = A3 | A2 | A0
 SHRC    = A3 | A2 | A1
 SHLC    = A3 | A2 | A1 | A0
 
+# Status codes
+SI      = FI
+SO      = F1 | F0
+
 # Instructions
 # Each instruction is a list of control bit states.
 # Consider the contrived example in binary: [00, 11, 10].
@@ -337,7 +341,7 @@ instructions: list[Instruction] = [
             f"PSH{source}",
             [STD | MAS, eval(f"{source}O") | RI, RST | CNI],
         )
-        for source in ["A", "B", "C", "H", "L", "BPH", "BPL"]
+        for source in ["A", "B", "C", "H", "L", "BPH", "BPL", "S"]
     ],
     Instruction(
         "PSH@",
@@ -350,7 +354,7 @@ instructions: list[Instruction] = [
             f"POP{destination}",
             [MAS, STI | eval(f"{destination}I") | RO, RST | CNI],
         )
-        for destination in ["A", "B", "C", "H", "L", "BPH", "BPL"]
+        for destination in ["A", "B", "C", "H", "L", "BPH", "BPL", "S"]
     ],
 
     # CALL
