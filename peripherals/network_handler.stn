@@ -1,0 +1,25 @@
+import routine output_packet.
+
+routine entry () -> [0]
+        ping: [8] ^ 5.
+        current_byte: <[8]>.
+        i: [8].
+{
+        i = 0:8.
+        ping = "ping".
+        loop {
+                current_byte = <[8]>(1024:16 + [16]i).
+                if $current_byte = ping @ i {
+                        i = i + 1:8.
+                        if i = 4:8 {
+                                current_byte = <[8]>1025:16.
+                                $current_byte = 'o'.
+                                return.
+                        }
+                } else {
+                        break.
+                }
+        }
+        !output_packet(<[8]> 1024:16).
+        return.
+}

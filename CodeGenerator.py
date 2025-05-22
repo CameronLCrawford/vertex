@@ -43,17 +43,17 @@ class Type:
 
     @classmethod
     def import_(cls, import_dict) -> "Type":
-        match import_dict['type_']:
-            case 'BaseType':
-                return BaseType.import_(import_dict['type_'])
-            case 'UnresolvedType':
-                return UnresolvedType.import_(import_dict['type_'])
-            case 'DataType':
-                DataType.import_(import_dict['type_'])
-            case 'ReferenceType':
-                return ReferenceType.import_(import_dict['type_'])
-            case 'ArrayType':
-                return ArrayType.import_(import_dict['type_'])
+        match import_dict:
+            case {'BaseType': _}:
+                return BaseType.import_(import_dict)
+            case {'UnresolvedType': _}:
+                return UnresolvedType.import_(import_dict)
+            case {'DataType': _}:
+                return DataType.import_(import_dict)
+            case {'ReferenceType': _}:
+                return ReferenceType.import_(import_dict)
+            case {'ArrayType': _}:
+                return ArrayType.import_(import_dict)
         return cls()
 
 class BaseType(Type):
@@ -228,7 +228,7 @@ class CodeGenerator(StornVisitor):
             parameters_dict = routine['parameters']
             parameters = {}
             for parameter in parameters_dict:
-                parameter_type = Type.import_(parameters_dict[parameter])
+                parameter_type = Type.import_(parameters_dict[parameter]['type_'])
                 parameter_type.calculate_size(self.data_table)
                 parameters[parameter] = parameter_type
             return_type_dict = routine['return_type']
@@ -292,8 +292,8 @@ class CodeGenerator(StornVisitor):
         if name != "entry":
             self.exports['routines'].update({
                 name: {
-                    'parameters': {parameter: parameters[parameter].export for parameter in parameters},
-                    'return_type': return_type.export
+                    'parameters': {parameter: {'type_': parameters[parameter].export} for parameter in parameters},
+                    'return_type': {'type_': return_type.export}
                 }
             })
 
@@ -428,6 +428,11 @@ class CodeGenerator(StornVisitor):
             if not isinstance(lvalue, ArrayType):
                 raise CompileError("Attempting to index non array type", ctx.projectionLvalue().start.line, ctx.projectionLvalue().start.line)
 
+            # HL is modified by expression calculation
+            self.instructions += [
+                "psh l",
+                "psh h",
+            ]
             index = self.visitExpression(ctx.expression(i))
             if not (isinstance(index, BaseType) and index.width == 8):
                 raise CompileError("Attempting to index by expression that doesn't evaluate to [8]", ctx.expression(i).start.line, ctx.expression(i).start.column)
@@ -438,6 +443,8 @@ class CodeGenerator(StornVisitor):
             # HL := HL + index * size
             self.instructions += [
                 "pop b", # index
+                "pop h", # saved state
+                "pop l", # saved state
                 f"ldr c {size}",
                 f"L{self.label_count}:",
                 "ldr a c",
@@ -813,7 +820,7 @@ class CodeGenerator(StornVisitor):
             "ldr spl bpl",
             "pop bpl",
             "pop bph",
-            *([f"pop {register}" for register in STATUS_REGISTERS] if self.current_routine.is_entry and not self.is_main else []),
+            *([f"pop {register}" for register in reversed(STATUS_REGISTERS)] if self.current_routine.is_entry and not self.is_main else []),
             *(["irt"] if self.current_routine.is_entry and not self.is_main else ["pop l", "pop h", "jmp m"]),
         ]
 

@@ -1,0 +1,21 @@
+routine output_packet (packet_address: <[8]>) -> [0]
+        i: [8].
+        current_byte: <[8]>.
+{
+        i = 0:8.
+        loop {
+                if i = 16:8 { ; mtu
+                        break.
+                }
+                current_byte = <[8]>([16]packet_address + [16]i).
+                output $current_byte.
+                i = i + 1:8.
+        }
+        return.
+}
+
+routine entry () -> [0]
+{
+        loop {}
+        return.
+}

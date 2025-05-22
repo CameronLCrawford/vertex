@@ -136,3 +136,5 @@
   expected_output: "OUTPUT: 111"
 - program: recursion
   expected_output: "OUTPUT: 200"
+- program: array
+  expected_output: "OUTPUT: 200"

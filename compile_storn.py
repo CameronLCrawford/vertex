@@ -54,10 +54,10 @@ def main():
             imports = {"globals": {}, "data": {}, "routines": {}}
 
         if args.input:
-            program, assembly, exports = compile(args.input, True, args.address, imports, args.imports is not None)
+            program, assembly, exports = compile(args.input, True, args.address, imports, args.imports is None)
         else:
             source = sys.stdin.read()
-            program, assembly, exports = compile(source, False, args.address, imports, args.imports is not None)
+            program, assembly, exports = compile(source, False, args.address, imports, args.imports is None)
 
         if args.assembly:
             with open(args.assembly, "w") as assembly_file:

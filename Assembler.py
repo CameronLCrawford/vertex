@@ -40,8 +40,6 @@ class Assembler(VtxVisitor):
                 except IndexError:
                     suffix = []
                 address_bytes = convert_address_to_bytes(self.label_offset[instruction])
-                if self.exports and instruction in self.exports['routines']:
-                    self.exports['routines'][instruction].update({'address': self.label_offset[instruction]})
                 self.instructions = prefix + list(address_bytes) + suffix
             elif instruction == "<LOW_BYTE>":
                 continue
@@ -50,6 +48,9 @@ class Assembler(VtxVisitor):
                     int(instruction)
                 except ValueError:
                     raise Exception(f"Error on instruction: {instruction}")
+        for label in self.label_offset:
+            if label in self.exports['routines']:
+                self.exports['routines'][label].update({'address': self.label_offset[label]})
 
     def visitLabel(self, ctx: VtxParser.LabelContext):
         label_name = ctx.LABEL().getText()
