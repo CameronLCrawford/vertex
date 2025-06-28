@@ -16,7 +16,7 @@ Executing a program on the CPU has three steps:
     - `make` compiles to out/vertex with clang
 2. Generating the control ROM
     - The CPU uses this to interpret instructions
-    - `python3 generate_control.py -o roms/control`
+    - `python generate_control.py -o roms/control`
 3. Generate the program ROM
     - This is the instructions to be executed
     - Storn source --\[`compile_storn.py`\]-> vtx assembly --\[`assemble_vtx.py`\]-> program

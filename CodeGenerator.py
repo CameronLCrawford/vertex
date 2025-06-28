@@ -1052,16 +1052,20 @@ class CodeGenerator(StornVisitor):
 
         shift_count = (ctx.getChildCount() - 1) // 2
         for i in range(shift_count):
-            if not isinstance(expression, BaseType):
+            if not (isinstance(expression, BaseType) or isinstance(expression, ReferenceType)):
                 raise CompileError("Attempting to perform additive operation on non numerical type", ctx.shiftExpr(i).start.line, ctx.shiftExpr(i).start.column)
             next_expression = self.visitShiftExpr(ctx.shiftExpr(i + 1))
-            if not isinstance(next_expression, BaseType):
-                raise CompileError("Attempting to perform additive operation on non numerical type", ctx.shiftExpr(i + 1).start.line, ctx.shiftExpr(i + 1).start.column)
-            if expression.width != next_expression.width:
-                raise CompileError("Attempting to perform additive operation on expressions of differing width", ctx.shiftExpr(i).start.line, ctx.shiftExpr(i).start.column)
+            if isinstance(next_expression, BaseType):
+                if isinstance(expression, BaseType) and expression.width != next_expression.width:
+                    raise CompileError("Attempting to perform additive operation on numerical expressions of differing width", ctx.shiftExpr(i).start.line, ctx.shiftExpr(i).start.column)
+            elif isinstance(next_expression, ReferenceType):
+                if isinstance(expression, BaseType) and expression.width != 16:
+                    raise CompileError("Attempting to perform additive operation on 8-bit numerical expression and reference", ctx.shiftExpr(i).start.line, ctx.shiftExpr(i).start.column)
+            else:
+                raise CompileError("Attempting to perform additive operation on non numerical / reference type", ctx.shiftExpr(i + 1).start.line, ctx.shiftExpr(i + 1).start.column)
 
             operation = ctx.arithmeticOp(i)
-            width = expression.width
+            width = expression.width if isinstance(expression, BaseType) else 16
             if operation.PLUS():
                 operation_instruction = "add"
             else:

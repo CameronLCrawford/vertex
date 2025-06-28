@@ -10,7 +10,7 @@ routine append(current_node: <[node]>, value: [8]) -> [0]
                         current_node = $current_node / next.
                         continue.
                 }
-                $current_node / next = <[node]>([16]current_node + 3:16).
+                $current_node / next = <[node]>(current_node + 3:16).
                 $($current_node / next) / next = <[node]> 0:16.
                 $($current_node / next) / value = value.
                 break.

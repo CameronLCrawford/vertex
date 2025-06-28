@@ -7,7 +7,7 @@ routine entry() -> [0]
                         $pixel_pointer = 255:8.
                 }
 
-                pixel_pointer = <[8]>([16]pixel_pointer + 1:16).
+                pixel_pointer = <[8]>(pixel_pointer + 1:16).
                 if [16]pixel_pointer = 16384:16 {
                         pixel_pointer = <[8]> 8192:16.
                 }
